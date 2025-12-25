@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"rttask/internal/domain/model/rbac"
 
 	"gorm.io/gorm"
 )
@@ -12,8 +13,8 @@ type User struct {
 	LastName       string
 	Email          string
 	HashedPassword string
-	Roles          []Role    `gorm:"many2many:users_roles;"`
-	Companies      []Company `gorm:"many2many:users_companies;"`
+	Roles          []rbac.Role `gorm:"many2many:users_roles;"`
+	Companies      []Company   `gorm:"many2many:users_companies;"`
 	AvatarID       *uint
 	Avatar         *File `gorm:"foreignKey:AvatarID"`
 }
