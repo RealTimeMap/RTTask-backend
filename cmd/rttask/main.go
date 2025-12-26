@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gin-contrib/cors"
 	"rttask/internal/app"
 	"rttask/internal/config"
 	"rttask/internal/domain/model"
@@ -8,6 +9,7 @@ import (
 	"rttask/internal/infrastructure/persistence/postgres"
 	"rttask/internal/transport/http/handlers"
 	"rttask/internal/transport/http/middleware"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -35,6 +37,14 @@ func main() {
 	router.Use(middleware.TraceMiddleware())
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(gin.Logger())
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"https://rt-task-frontend.vercel.app", "https://realtimemap.ru", "http://localhost:5173", "http://localhost:1420"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Trace-Id"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	handlers.InitPermissionHandler(router.Group("/"), logger)
 	handlers.InitAuthHandler(router.Group("/"), container.JWTManager, container.AuthService)
