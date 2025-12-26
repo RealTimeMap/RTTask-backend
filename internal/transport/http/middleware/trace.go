@@ -8,7 +8,7 @@ import (
 func TraceMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		traceID := c.GetHeader("X-Trace-ID")
+		traceID := c.GetHeader("X-Trace-Id")
 		if traceID == "" {
 			traceID = uuid.New().String()
 		}
