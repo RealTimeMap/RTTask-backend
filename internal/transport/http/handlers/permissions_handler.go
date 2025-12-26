@@ -1,4 +1,4 @@
-package http
+package handlers
 
 import (
 	"net/http"
@@ -21,6 +21,6 @@ func InitPermissionHandler(g *gin.RouterGroup, logger *zap.Logger) {
 }
 
 func (h *PermissionsHandler) GetAllPermissions(c *gin.Context) {
-	response := dto.NewGroupedPermissions()
-	c.JSON(http.StatusOK, response)
+	permResponse := dto.NewGroupedPermissions()
+	c.JSON(http.StatusOK, permResponse)
 }

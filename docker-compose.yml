@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rttask-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal-rttask
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: service-rttask
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - internal-rttask
+      - web
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  internal-rttask:
+  web:
+    external: true

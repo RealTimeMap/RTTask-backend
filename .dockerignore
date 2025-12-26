@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+*.out
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# Environment files
+.env
+.env.local
+
+# Documentation
+*.md
+AUTH_PLAN.md
+Errors.md
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Temporary files
+tmp/
+temp/

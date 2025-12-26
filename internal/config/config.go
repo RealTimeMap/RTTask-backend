@@ -30,9 +30,24 @@ func (db Database) DSN() string {
 	)
 }
 
+type JWT struct {
+	Secret               string `yaml:"secretKey" env:"JWT_SECRET_KEY" env-required:"true"`
+	AccessTokenDuration  int    `yaml:"accessTokenDuration" env:"JWT_ACCESS_TOKEN_DURATION" env-default:"24"`
+	RefreshTokenDuration int    `yaml:"refreshTokenDuration" env:"JWT_REFRESH_TOKEN_DURATION" env-default:"1000"`
+}
+
+func (J JWT) AccessTokenTimeDuration() time.Duration {
+	return time.Duration(J.AccessTokenDuration) * time.Minute
+}
+
+func (J JWT) RefreshTokenTimeDuration() time.Duration {
+	return time.Duration(J.RefreshTokenDuration) * time.Minute
+}
+
 type Config struct {
 	Env      string   `env:"ENV" env-default:"local"`
 	Database Database `yaml:"database"`
+	JWT      JWT      `yaml:"jwt"`
 }
 
 func MustLoadConfig() Config {
