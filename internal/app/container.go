@@ -2,6 +2,7 @@ package app
 
 import (
 	"rttask/internal/config"
+	"rttask/internal/domain/repository"
 	"rttask/internal/domain/service/auth"
 	"rttask/internal/domain/service/invite"
 	"rttask/internal/infrastructure/persistence/postgres"
@@ -13,10 +14,12 @@ import (
 )
 
 type Container struct {
-	AuthService   *auth.AuthService
-	InviteService *invite.InviteService
-	JWTManager    security.JWTManager
-	Mapper        *response.ErrorMapper
+	AuthService    *auth.AuthService
+	InviteService  *invite.InviteService
+	JWTManager     security.JWTManager
+	Mapper         *response.ErrorMapper
+	UserRepository repository.UserRepository
+	Hasher         security.PasswordHasher
 }
 
 func NewContainer(cfg config.Config, db *gorm.DB, logger *zap.Logger) *Container {
@@ -40,5 +43,8 @@ func NewContainer(cfg config.Config, db *gorm.DB, logger *zap.Logger) *Container
 
 		JWTManager: manager,
 		Mapper:     mapper,
+
+		UserRepository: userRepo,
+		Hasher:         passwordHasher,
 	}
 }

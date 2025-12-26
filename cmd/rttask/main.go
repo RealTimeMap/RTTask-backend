@@ -1,15 +1,18 @@
 package main
 
 import (
-	"github.com/gin-contrib/cors"
+	"context"
 	"rttask/internal/app"
 	"rttask/internal/config"
 	"rttask/internal/domain/model"
 	"rttask/internal/domain/model/rbac"
 	"rttask/internal/infrastructure/persistence/postgres"
+	"rttask/internal/scripts"
 	"rttask/internal/transport/http/handlers"
 	"rttask/internal/transport/http/middleware"
 	"time"
+
+	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -32,7 +35,11 @@ func main() {
 		&model.InviteLink{},
 	)
 	logger.Info("config loaded", zap.String("ENV", cfg.Env))
+
 	container := app.NewContainer(cfg, db, logger)
+
+	scripts.CreateAdminIfNotExists(context.Background(), cfg.Admin, logger, container.UserRepository, container.Hasher)
+
 	router := gin.New()
 	router.Use(middleware.TraceMiddleware())
 	router.Use(middleware.RecoveryMiddleware(logger))

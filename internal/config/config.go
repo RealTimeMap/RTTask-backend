@@ -44,10 +44,16 @@ func (J JWT) RefreshTokenTimeDuration() time.Duration {
 	return time.Duration(J.RefreshTokenDuration) * time.Minute
 }
 
+type Admin struct {
+	Email    string `yaml:"email" env:"ADMIN_EMAIL" env-default:"admin@admin.ru"`
+	Password string `yaml:"password" env:"ADMIN_PASSWORD" env-default:"admin1admin"`
+}
+
 type Config struct {
 	Env      string   `env:"ENV" env-default:"local"`
 	Database Database `yaml:"database"`
 	JWT      JWT      `yaml:"jwt"`
+	Admin    Admin    `yaml:"admin"`
 }
 
 func MustLoadConfig() Config {
