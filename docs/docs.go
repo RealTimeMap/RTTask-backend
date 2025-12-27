@@ -197,14 +197,66 @@ const docTemplate = `{
                 }
             }
         },
-        "/permissions/all": {
-            "get": {
-                "description": "Get all system permissions for roles.",
+        "/role": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new role for users",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "permissions"
+                    "roles"
+                ],
+                "summary": "Create new role",
+                "responses": {
+                    "201": {
+                        "description": "Successfully created role",
+                        "schema": {
+                            "$ref": "#/definitions/dto.RoleResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Not valid data",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "403": {
+                        "description": "Don't have permissions",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    }
+                }
+            }
+        },
+        "/role/permissions": {
+            "get": {
+                "description": "Get all system permissions for role.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
                 ],
                 "summary": "Systems permissions",
                 "responses": {
@@ -275,6 +327,23 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.RoleResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

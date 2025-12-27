@@ -46,7 +46,6 @@ func main() {
 		&model.Company{},
 		&model.User{},
 		&model.File{},
-		&model.TaskStatus{},
 		&model.Task{},
 		&model.Comment{},
 		&model.InviteLink{},
@@ -67,6 +66,21 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+	router.NoRoute(func(c *gin.Context) {
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.JSON(404, gin.H{"error": "Not found"})
+	})
+
+	router.NoMethod(func(c *gin.Context) {
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.JSON(405, gin.H{"error": "Method not allowed"})
+	})
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.GET("/docs", func(c *gin.Context) {
@@ -76,9 +90,9 @@ func main() {
 		c.Redirect(302, "/swagger/index.html")
 	})
 
-	handlers.InitPermissionHandler(router.Group("/"), logger)
 	handlers.InitAuthHandler(router.Group("/"), container.JWTManager, container.AuthService)
 	handlers.InitInviteHandler(router.Group("/"), container.InviteService, logger, container.JWTManager, container.Mapper)
+	handlers.InitRoleHandler(router.Group("/"), container.RoleService, logger, container.JWTManager, container.Mapper)
 
-	router.Run(":8080")
+	router.Run(":8081")
 }
