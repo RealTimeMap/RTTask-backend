@@ -2,6 +2,7 @@ package role
 
 import (
 	"context"
+	"errors"
 	domainerrors "rttask/internal/domain/errors"
 	"rttask/internal/domain/model/rbac"
 	"rttask/internal/domain/repository"
@@ -19,22 +20,9 @@ func NewRoleService(roleRepo repository.RoleRepository, userRepo repository.User
 	return &RoleService{roleRepo: roleRepo, userRepo: userRepo, logger: logger}
 }
 
+// CreateRole создание роли если данные прошли валидацию
 func (s *RoleService) CreateRole(ctx context.Context, input RoleInput) (*rbac.Role, error) {
-	// TODO добавить обработку уникальности имени
-	// ...
-	// ...
-	// ...
-	// ...
-
-	user, err := s.userRepo.GetUserByIDWithRoles(ctx, input.UserID)
-	if err != nil {
-		return nil, err
-	}
-	if !user.Can(rbac.RoleCreate) {
-		return nil, domainerrors.NewForbiddenError("Dont have permissions to create a role")
-	}
-
-	permissions, err := s.validatePermissions(input.Permissions)
+	permissions, err := s.validate(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +39,24 @@ func (s *RoleService) CreateRole(ctx context.Context, input RoleInput) (*rbac.Ro
 	return newRole, nil
 }
 
+// validate Объеденяет все валидацию в 1 функцию
+func (s *RoleService) validate(ctx context.Context, input RoleInput) ([]rbac.Permission, error) {
+	err := s.checkExistRole(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+	err = s.checkUserPermission(ctx, input.UserID, rbac.RoleCreate)
+	if err != nil {
+		return nil, err
+	}
+	permissions, err := s.validatePermissions(input.Permissions)
+	if err != nil {
+		return nil, err
+	}
+	return permissions, err
+}
+
+// validatePermissions Валидирует права и возвращает массив прав
 func (s *RoleService) validatePermissions(perms []string) ([]rbac.Permission, error) {
 	var permissions []rbac.Permission
 	for _, p := range perms {
@@ -61,4 +67,34 @@ func (s *RoleService) validatePermissions(perms []string) ([]rbac.Permission, er
 		}
 	}
 	return permissions, nil
+}
+
+// checkExistRole проверяет что создаваемая роль не существует
+func (s *RoleService) checkExistRole(ctx context.Context, name string) error {
+	role, err := s.roleRepo.GetByName(ctx, name)
+	if err != nil {
+		var notFoundErr *domainerrors.DomainError
+		if !errors.As(err, &notFoundErr) && notFoundErr.Type == domainerrors.ErrorTypeNotFound {
+			return err
+		}
+	}
+	if role != nil {
+		return domainerrors.NewAlreadyExistsError("role", "name", name)
+	}
+	return nil
+}
+
+// checkUserPermission Валидирует права доступа пользователя. может ли он сделать это дейтсвие
+func (s *RoleService) checkUserPermission(ctx context.Context, userID uint, permission rbac.Permission) error {
+	user, err := s.userRepo.GetUserByIDWithRoles(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return domainerrors.NewUnauthorizedError("Unauthorized")
+	}
+	if !user.Can(permission) {
+		return domainerrors.NewForbiddenError("Dont have permissions to create a role")
+	}
+	return nil
 }

@@ -36,3 +36,12 @@ func (r *PgRoleRepository) Update(ctx context.Context, role *rbac.Role) (*rbac.R
 	}
 	return role, nil
 }
+
+func (r *PgRoleRepository) GetByName(ctx context.Context, name string) (*rbac.Role, error) {
+	var role *rbac.Role
+	err := r.db.WithContext(ctx).First(&role, "name = ?", name).Error
+	if err != nil {
+		return nil, MapGormError(err, "role")
+	}
+	return role, nil
+}

@@ -14,5 +14,8 @@ func MapGormError(err error, entity string) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return domainerrors.NewNotFoundError(entity, "")
 	}
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return domainerrors.NewAlreadyExistsError(entity, "", "")
+	}
 	return domainerrors.NewDatabaseError("postgres error", err)
 }
