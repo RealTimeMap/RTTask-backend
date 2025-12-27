@@ -12,11 +12,28 @@ import (
 	"rttask/internal/transport/http/middleware"
 	"time"
 
-	"github.com/gin-contrib/cors"
+	_ "rttask/docs"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
 )
+
+// @title RTTask API
+// @version 1.0
+// @description Task management system API documentation
+// @termsOfService http://swagger.io/terms/
+
+// @host localhost:8080
+// @BasePath /
+// @schemes https
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
 	cfg := config.MustLoadConfig()
@@ -40,18 +57,24 @@ func main() {
 
 	scripts.CreateAdminIfNotExists(context.Background(), cfg.Admin, logger, container.UserRepository, container.Hasher)
 
-	router := gin.New()
+	router := gin.Default()
 	router.Use(middleware.TraceMiddleware())
-	router.Use(middleware.RecoveryMiddleware(logger))
-	router.Use(gin.Logger())
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://rt-task-frontend.vercel.app", "https://realtimemap.ru", "http://localhost:5173", "http://localhost:1420"},
+		AllowOrigins:     []string{"https://rt-task-frontend.vercel.app", "https://realtimemap.ru", "http://localhost:5173", "http://localhost:1420", "http://localhost:8080"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Trace-Id"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	router.GET("/docs", func(c *gin.Context) {
+		c.Redirect(302, "/swagger/index.html")
+	})
+	router.GET("/swagger", func(c *gin.Context) {
+		c.Redirect(302, "/swagger/index.html")
+	})
 
 	handlers.InitPermissionHandler(router.Group("/"), logger)
 	handlers.InitAuthHandler(router.Group("/"), container.JWTManager, container.AuthService)

@@ -1,0 +1,217 @@
+basePath: /
+definitions:
+  auth.Tokens:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.InviteResponse:
+    properties:
+      id:
+        type: integer
+      token:
+        type: string
+    type: object
+  dto.PermissionGroupDTO:
+    properties:
+      group:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/dto.PermissionResponse'
+        type: array
+    type: object
+  dto.PermissionResponse:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.UserResponse:
+    properties:
+      email:
+        type: string
+      fullName:
+        type: string
+      id:
+        type: integer
+    type: object
+  response.ProblemDetail:
+    properties:
+      detail:
+        type: string
+      instance:
+        type: string
+      meta:
+        additionalProperties: true
+        type: object
+      status:
+        type: integer
+      title:
+        type: string
+      traceId:
+        type: string
+      type:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Task management system API documentation
+  termsOfService: http://swagger.io/terms/
+  title: RTTask API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Authenticate user with email and password
+      parameters:
+      - description: User email
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: User password
+        in: formData
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully authenticated
+          schema:
+            $ref: '#/definitions/auth.Tokens'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      summary: User login
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Register a new user with email, password, and invite link
+      parameters:
+      - description: User email
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: User password
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: User first name
+        in: formData
+        name: firstName
+        required: true
+        type: string
+      - description: User last name
+        in: formData
+        name: lastName
+        required: true
+        type: string
+      - description: Invite link token
+        in: formData
+        name: inviteLink
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully registered
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "404":
+          description: Invite link not found
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      summary: User registration
+      tags:
+      - auth
+  /invite:
+    post:
+      consumes:
+      - application/json
+      description: Create a new invite link for user registration
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created invite link
+          schema:
+            $ref: '#/definitions/dto.InviteResponse'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Create invite link
+      tags:
+      - invite
+  /permissions/all:
+    get:
+      description: Get all system permissions for roles.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully registered
+          schema:
+            items:
+              $ref: '#/definitions/dto.PermissionGroupDTO'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      summary: Systems permissions
+      tags:
+      - permissions
+schemes:
+- https
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

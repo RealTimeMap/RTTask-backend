@@ -20,6 +20,14 @@ func InitPermissionHandler(g *gin.RouterGroup, logger *zap.Logger) {
 	}
 }
 
+// GetAllPermissions godoc
+// @Summary Systems permissions
+// @Description Get all system permissions for roles.
+// @Tags permissions
+// @Produce json
+// @Success 200 {object} []dto.PermissionGroupDTO "Successfully registered"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /permissions/all [get]
 func (h *PermissionsHandler) GetAllPermissions(c *gin.Context) {
 	permResponse := dto.NewGroupedPermissions()
 	c.JSON(http.StatusOK, permResponse)

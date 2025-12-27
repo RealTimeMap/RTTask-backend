@@ -33,6 +33,19 @@ func InitAuthHandler(g *gin.RouterGroup, manager security.JWTManager, authServic
 	}
 }
 
+// Login godoc
+// @Summary User login
+// @Description Authenticate user with email and password
+// @Tags auth
+// @Accept x-www-form-urlencoded
+// @Produce json
+// @Param email formData string true "User email"
+// @Param password formData string true "User password"
+// @Success 200 {object} auth.Tokens "Successfully authenticated"
+// @Failure 400 {object} response.ProblemDetail "Invalid request body"
+// @Failure 401 {object} response.ProblemDetail "Invalid credentials"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	traceID := response.GetTraceID(c)
@@ -67,6 +80,23 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, tokens)
 }
 
+// Register godoc
+// @Summary User registration
+// @Description Register a new user with email, password, and invite link
+// @Tags auth
+// @Accept x-www-form-urlencoded
+// @Produce json
+// @Param email formData string true "User email"
+// @Param password formData string true "User password"
+// @Param firstName formData string true "User first name"
+// @Param lastName formData string true "User last name"
+// @Param inviteLink formData string true "Invite link token"
+// @Success 201 {object} dto.UserResponse "Successfully registered"
+// @Failure 400 {object} response.ProblemDetail "Invalid request body"
+// @Failure 404 {object} response.ProblemDetail "Invite link not found"
+// @Failure 409 {object} response.ProblemDetail "User already exists"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 

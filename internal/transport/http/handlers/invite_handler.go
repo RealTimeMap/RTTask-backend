@@ -30,6 +30,17 @@ func InitInviteHandler(g *gin.RouterGroup, service *invite.InviteService, logger
 	}
 }
 
+// CreateInvite godoc
+// @Summary Create invite link
+// @Description Create a new invite link for user registration
+// @Tags invite
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 201 {object} dto.InviteResponse "Successfully created invite link"
+// @Failure 401 {object} response.ProblemDetail "Unauthorized - invalid or missing token"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /invite [post]
 func (h *InviteHandler) CreateInvite(c *gin.Context) {
 	userID := response.GetUserID(c)
 	traceID := response.GetTraceID(c)
