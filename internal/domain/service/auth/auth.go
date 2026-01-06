@@ -111,7 +111,7 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*model
 			return nil, err
 		}
 	}
-	_, err = s.inviteRepo.GetByToken(ctx, input.InviteLink) // TODO дальше сделать более сложную проверку
+	invite, err := s.inviteRepo.GetByToken(ctx, input.InviteLink) // TODO дальше сделать более сложную проверку
 	if err != nil {
 		var notFoundErr *domainerrors.DomainError
 		if errors.As(err, &notFoundErr) && notFoundErr.Type == domainerrors.ErrorTypeNotFound {
@@ -146,6 +146,7 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*model
 		Email:          input.Email.String(),
 		FirstName:      input.FirstName,
 		LastName:       input.LastName,
+		Roles:          invite.Roles,
 		HashedPassword: hashPassword,
 	}
 
