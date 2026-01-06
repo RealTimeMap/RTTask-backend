@@ -54,7 +54,12 @@ func main() {
 
 	container := app.NewContainer(cfg, db, logger)
 
-	scripts.CreateAdminIfNotExists(context.Background(), cfg.Admin, logger, container.UserRepository, container.Hasher)
+	ctx := context.Background()
+
+	// системные данные
+	scripts.CreateAdminIfNotExists(ctx, cfg.Admin, logger, container.UserRepository, container.Hasher)
+	scripts.CreateAdminRoleIfNotExists(ctx, logger, container.RoleRepository)
+	scripts.AssignAdminRoleToAdmin(ctx, cfg.Admin, logger, container.RoleRepository, db)
 
 	router := gin.Default()
 	router.Use(middleware.TraceMiddleware())

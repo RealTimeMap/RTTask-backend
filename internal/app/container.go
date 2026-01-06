@@ -24,6 +24,7 @@ type Container struct {
 	Hasher     security.PasswordHasher
 
 	UserRepository repository.UserRepository
+	RoleRepository repository.RoleRepository
 }
 
 func NewContainer(cfg config.Config, db *gorm.DB, logger *zap.Logger) *Container {
@@ -51,8 +52,9 @@ func NewContainer(cfg config.Config, db *gorm.DB, logger *zap.Logger) *Container
 
 		JWTManager: manager,
 		Mapper:     mapper,
+		Hasher:     passwordHasher,
 
 		UserRepository: userRepo,
-		Hasher:         passwordHasher,
+		RoleRepository: roleRepo,
 	}
 }
