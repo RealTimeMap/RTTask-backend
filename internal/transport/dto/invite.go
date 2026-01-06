@@ -3,6 +3,7 @@ package dto
 import "rttask/internal/domain/model"
 
 type InviteRequest struct {
+	RolesIDs []uint `json:"rolesIds"`
 }
 
 // RESPONSE

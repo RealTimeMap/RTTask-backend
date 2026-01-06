@@ -45,3 +45,13 @@ func (r *PgRoleRepository) GetByName(ctx context.Context, name string) (*rbac.Ro
 	}
 	return role, nil
 }
+
+func (r *PgRoleRepository) GetByIDs(ctx context.Context, ids []uint) ([]rbac.Role, error) {
+	r.logger.Info("start RoleRepository.GetByIDs")
+	var roles []rbac.Role
+	err := r.db.WithContext(ctx).Where("id IN (?)", ids).Find(&roles).Error
+	if err != nil {
+		return nil, MapGormError(err, "role")
+	}
+	return roles, nil
+}

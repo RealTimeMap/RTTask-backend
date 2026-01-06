@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"rttask/internal/domain/service/invite"
+	"rttask/internal/domain/valueobject"
 	"rttask/internal/infrastructure/security"
 	"rttask/internal/transport/dto"
 	"rttask/internal/transport/http/middleware"
@@ -27,6 +28,7 @@ func InitInviteHandler(g *gin.RouterGroup, service *invite.InviteService, logger
 	r := g.Group("/invite")
 	{
 		r.POST("/", middleware.AuthMiddleware(manager, logger, mapper), h.CreateInvite)
+		r.GET("/", middleware.AuthMiddleware(manager, logger, mapper), h.GetAll)
 	}
 }
 
@@ -42,16 +44,53 @@ func InitInviteHandler(g *gin.RouterGroup, service *invite.InviteService, logger
 // @Failure 500 {object} response.ProblemDetail "Internal server error"
 // @Router /invite [post]
 func (h *InviteHandler) CreateInvite(c *gin.Context) {
+	var req dto.InviteRequest
 	userID := response.GetUserID(c)
 	traceID := response.GetTraceID(c)
 
-	newInvite, err := h.service.CreateInvite(c.Request.Context(), userID)
+	if err := c.ShouldBind(&req); err != nil {
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID).WithInstance(c.Request.URL.Path)
+		problem.Send(c)
+		return
+	}
+	h.logger.Info("ids", zap.Any("ids", req.RolesIDs))
+	rawData := invite.NewInviteInput(req.RolesIDs)
+
+	newInvite, err := h.service.CreateInvite(c.Request.Context(), rawData, userID)
 
 	if err != nil {
-		problem := h.mapper.MapError(c, err).WithTraceID(traceID).WithInstance(c.Request.URL.Path)
+		problem := h.mapper.MapError(c, err).
+			WithTraceID(traceID).
+			WithInstance(c.Request.URL.Path)
 		problem.Send(c)
 		return
 	}
 	c.JSON(http.StatusCreated, dto.NewInviteResponse(newInvite))
 
+}
+
+func (h *InviteHandler) GetAll(c *gin.Context) {
+	var params dto.PaginationRequest
+	params.Default()
+
+	traceID := response.GetTraceID(c)
+	userID := response.GetUserID(c)
+
+	if err := c.ShouldBindQuery(&params); err != nil {
+		problem := h.mapper.MapError(c, err).
+			WithTraceID(traceID).WithInstance(c.Request.URL.Path)
+		problem.Send(c)
+		return
+	}
+
+	validParams := valueobject.PaginationParams{Page: params.Page, Offset: params.Offset(), Limit: params.Limit()}
+
+	invites, err := h.service.GetAllInvites(c.Request.Context(), userID, validParams)
+	if err != nil {
+		problem := h.mapper.MapError(c, err).
+			WithTraceID(traceID).WithInstance(c.Request.URL.Path)
+		problem.Send(c)
+		return
+	}
+	c.JSON(http.StatusOK, dto.NewPaginationResponse(invites, params, 100))
 }

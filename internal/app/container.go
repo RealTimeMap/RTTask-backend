@@ -42,7 +42,7 @@ func NewContainer(cfg config.Config, db *gorm.DB, logger *zap.Logger) *Container
 	// Сервисы
 
 	authService := auth.NewAuthService(userRepo, inviteRepo, passwordHasher, manager, cfg.JWT.AccessTokenTimeDuration(), cfg.JWT.RefreshTokenTimeDuration(), logger)
-	inviteService := invite.NewInviteService(inviteRepo, userRepo, logger)
+	inviteService := invite.NewInviteService(inviteRepo, userRepo, roleRepo, logger)
 	roleService := role.NewRoleService(roleRepo, userRepo, logger)
 
 	return &Container{

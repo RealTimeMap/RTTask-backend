@@ -1,8 +1,16 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"rttask/internal/domain/model/rbac"
+
+	"gorm.io/gorm"
+)
 
 type InviteLink struct {
 	gorm.Model
-	Token string `gorm:"type:varchar(255);not null;unique;index"`
+	UserID      uint
+	User        User
+	Token       string      `gorm:"type:varchar(255);not null;unique;index"`
+	Description *string     `gorm:"type:varchar(255);"`
+	Roles       []rbac.Role `gorm:"many2many:invite_links_roles;"`
 }

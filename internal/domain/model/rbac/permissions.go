@@ -25,14 +25,40 @@ const (
 	TaskCreate       Permission = "task:create"
 	TaskDelete       Permission = "task:delete"
 	TaskUpdate       Permission = "task:update"
+	TaskView         Permission = "task:view"
+	TaskList         Permission = "task:list"
 	TaskAssign       Permission = "task:assign"
 	TaskChangeStatus Permission = "task:changeStatus"
 
 	// Роли
 
 	RoleCreate Permission = "role:create"
+	RoleUpdate Permission = "role:update"
 	RoleDelete Permission = "role:delete"
+	RoleList   Permission = "role:list"
 	RoleAssign Permission = "role:assign"
+
+	// Пользователи
+
+	UserView   Permission = "user:view"
+	UserList   Permission = "user:list"
+	UserUpdate Permission = "user:update"
+	UserDelete Permission = "user:delete"
+
+	// Компании
+
+	CompanyCreate Permission = "company:create"
+	CompanyUpdate Permission = "company:update"
+	CompanyDelete Permission = "company:delete"
+	CompanyView   Permission = "company:view"
+	CompanyList   Permission = "company:list"
+
+	// Комментарии
+
+	CommentCreate Permission = "comment:create"
+	CommentView   Permission = "comment:view"
+	CommentUpdate Permission = "comment:update"
+	CommentDelete Permission = "comment:delete"
 )
 
 var PermissionsRegister = map[Permission]PermissionInfo{
@@ -69,6 +95,16 @@ var PermissionsRegister = map[Permission]PermissionInfo{
 		Description: "Редактирование задач",
 		Group:       "Задачи",
 	},
+	TaskView: {
+		Name:        "task:view",
+		Description: "Просмотр задачи",
+		Group:       "Задачи",
+	},
+	TaskList: {
+		Name:        "task:list",
+		Description: "Просмотр списка задач",
+		Group:       "Задачи",
+	},
 	TaskAssign: {
 		Name:        "task:assign",
 		Description: "Назначение задач пользователям",
@@ -86,15 +122,96 @@ var PermissionsRegister = map[Permission]PermissionInfo{
 		Description: "Создание новых ролей",
 		Group:       "Роли",
 	},
+	RoleUpdate: {
+		Name:        "role:update",
+		Description: "Редактирование ролей",
+		Group:       "Роли",
+	},
 	RoleDelete: {
 		Name:        "role:delete",
 		Description: "Удаление ролей",
+		Group:       "Роли",
+	},
+	RoleList: {
+		Name:        "role:list",
+		Description: "Просмотр списка ролей",
 		Group:       "Роли",
 	},
 	RoleAssign: {
 		Name:        "role:assign",
 		Description: "Назначение ролей пользователям",
 		Group:       "Роли",
+	},
+
+	// Пользователи
+	UserView: {
+		Name:        "user:view",
+		Description: "Просмотр профиля пользователя",
+		Group:       "Пользователи",
+	},
+	UserList: {
+		Name:        "user:list",
+		Description: "Просмотр списка пользователей",
+		Group:       "Пользователи",
+	},
+	UserUpdate: {
+		Name:        "user:update",
+		Description: "Редактирование пользователей",
+		Group:       "Пользователи",
+	},
+	UserDelete: {
+		Name:        "user:delete",
+		Description: "Удаление пользователей",
+		Group:       "Пользователи",
+	},
+
+	// Компании
+	CompanyCreate: {
+		Name:        "company:create",
+		Description: "Создание компаний",
+		Group:       "Компании",
+	},
+	CompanyUpdate: {
+		Name:        "company:update",
+		Description: "Редактирование компаний",
+		Group:       "Компании",
+	},
+	CompanyDelete: {
+		Name:        "company:delete",
+		Description: "Удаление компаний",
+		Group:       "Компании",
+	},
+	CompanyView: {
+		Name:        "company:view",
+		Description: "Просмотр компании",
+		Group:       "Компании",
+	},
+	CompanyList: {
+		Name:        "company:list",
+		Description: "Просмотр списка компаний",
+		Group:       "Компании",
+	},
+
+	// Комментарии
+	CommentCreate: {
+		Name:        "comment:create",
+		Description: "Создание комментариев",
+		Group:       "Комментарии",
+	},
+	CommentView: {
+		Name:        "comment:view",
+		Description: "Просмотр комментариев",
+		Group:       "Комментарии",
+	},
+	CommentUpdate: {
+		Name:        "comment:update",
+		Description: "Редактирование комментариев",
+		Group:       "Комментарии",
+	},
+	CommentDelete: {
+		Name:        "comment:delete",
+		Description: "Удаление комментариев",
+		Group:       "Комментарии",
 	},
 }
 
