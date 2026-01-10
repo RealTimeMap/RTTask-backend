@@ -17,7 +17,7 @@ type User struct {
 	Roles          []rbac.Role `gorm:"many2many:users_roles;"`
 	Companies      []Company   `gorm:"many2many:users_companies;"`
 	AvatarID       *uint
-	Avatar         *File `gorm:"foreignKey:AvatarID"`
+	Avatar         *File `gorm:"type:jsonb;serializer:json"`
 }
 
 func (u *User) FullName() string {

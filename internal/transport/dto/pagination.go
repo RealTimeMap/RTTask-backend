@@ -21,14 +21,14 @@ func (p *PaginationRequest) Default() {
 }
 
 type PaginationResponse[T any] struct {
-	Items      []T  `json:"items"`
-	TotalPages int  `json:"totalPages"`
-	Total      int  `json:"total"`
-	HasNext    bool `json:"hasNext"`
-	HasPrev    bool `json:"hasPrev"`
+	Items      []T   `json:"items"`
+	TotalPages int   `json:"totalPages"`
+	Total      int64 `json:"total"`
+	HasNext    bool  `json:"hasNext"`
+	HasPrev    bool  `json:"hasPrev"`
 }
 
-func NewPaginationResponse[T any](items []T, params PaginationRequest, total int) PaginationResponse[T] {
+func NewPaginationResponse[T any](items []T, params PaginationRequest, total int64) PaginationResponse[T] {
 	totalPages := 0
 	if params.PageSize > 0 {
 		totalPages = int(math.Ceil(float64(total) / float64(params.PageSize)))

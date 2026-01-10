@@ -6,6 +6,7 @@ import (
 	domainerrors "rttask/internal/domain/errors"
 	"rttask/internal/domain/model"
 	"rttask/internal/domain/repository"
+	"rttask/internal/domain/service/file"
 	"rttask/internal/infrastructure/security"
 	"time"
 
@@ -29,6 +30,7 @@ func NewTokens(accessToken, refreshToken string) *Tokens {
 type AuthService struct {
 	userRepo        repository.UserRepository
 	inviteRepo      repository.InviteRepository
+	fileService     *file.FileService
 	passwordHasher  security.PasswordHasher
 	jwtManager      security.JWTManager
 	accessDuration  time.Duration
@@ -39,6 +41,7 @@ type AuthService struct {
 func NewAuthService(
 	userRepo repository.UserRepository,
 	inviteRepo repository.InviteRepository,
+	fileService *file.FileService,
 	passwordHasher security.PasswordHasher,
 	jwtManager security.JWTManager,
 	accessDuration time.Duration,
@@ -48,6 +51,7 @@ func NewAuthService(
 	return &AuthService{
 		userRepo:        userRepo,
 		inviteRepo:      inviteRepo,
+		fileService:     fileService,
 		passwordHasher:  passwordHasher,
 		jwtManager:      jwtManager,
 		accessDuration:  accessDuration,
@@ -99,47 +103,28 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*Tokens, err
 	return tokens, nil
 }
 
-func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*model.User, error) {
-	existingUser, err := s.userRepo.GetUserByEmail(ctx, input.Email.String())
-	if err != nil {
-		var notFoundErr *domainerrors.DomainError
-		if !errors.As(err, &notFoundErr) || notFoundErr.Type != domainerrors.ErrorTypeNotFound {
-			s.logger.Error("failed to check user existence",
-				zap.String("email", input.Email.String()),
-				zap.Error(err),
-			)
-			return nil, err
-		}
-	}
-	invite, err := s.inviteRepo.GetByToken(ctx, input.InviteLink) // TODO дальше сделать более сложную проверку
-	if err != nil {
-		var notFoundErr *domainerrors.DomainError
-		if errors.As(err, &notFoundErr) && notFoundErr.Type == domainerrors.ErrorTypeNotFound {
-			s.logger.Warn("invite token not found",
-				zap.String("token", input.InviteLink),
-			)
-			return nil, domainerrors.NewNotFoundError("invite", input.InviteLink)
-		}
-		// Любая другая ошибка БД
-		s.logger.Error("failed to check invite token",
-			zap.String("token", input.InviteLink),
-			zap.Error(err),
-		)
+func (s *AuthService) Register(ctx context.Context, input RegisterInput, fileInput *file.FileInput) (*model.User, error) {
+	if err := s.validateUser(ctx, input.Email.String()); err != nil {
 		return nil, err
 	}
-	if existingUser != nil {
-		s.logger.Warn("registration attempt for existing user",
-			zap.String("email", input.Email.String()),
-		)
-		return nil, domainerrors.NewAlreadyExistsError("user", "email", input.Email.String())
+
+	invite, err := s.validateInvite(ctx, input.InviteLink) // TODO дальше сделать более сложную проверку
+	if err != nil {
+		return nil, err
 	}
 
-	hashPassword, err := s.passwordHasher.HashPassword(input.Password.String())
+	hashPassword, err := s.hashPassword(input.Password.String())
 	if err != nil {
-		s.logger.Error("failed to hash password",
-			zap.Error(err),
-		)
-		return nil, domainerrors.NewInternalError("failed to secure password", err)
+		return nil, err
+	}
+
+	var avatar *model.File
+	if fileInput != nil {
+		uploadAvatar, err := s.fileService.UploadFile(ctx, *fileInput, file.CompanyProfile)
+		if err != nil {
+			return nil, err
+		}
+		avatar = uploadAvatar
 	}
 
 	newUser := &model.User{
@@ -148,6 +133,7 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*model
 		LastName:       input.LastName,
 		Roles:          invite.Roles,
 		HashedPassword: hashPassword,
+		Avatar:         avatar,
 	}
 
 	createdUser, err := s.userRepo.CreateUser(ctx, newUser)
@@ -178,4 +164,56 @@ func (s *AuthService) generateTokens(user *model.User) (*Tokens, error) {
 		return nil, err
 	}
 	return NewTokens(accessToken, refreshToken), nil
+}
+
+func (s *AuthService) validateInvite(ctx context.Context, inviteLink string) (*model.InviteLink, error) {
+	invite, err := s.inviteRepo.GetByToken(ctx, inviteLink) // TODO дальше сделать более сложную проверку
+	if err != nil {
+		var notFoundErr *domainerrors.DomainError
+		if errors.As(err, &notFoundErr) && notFoundErr.Type == domainerrors.ErrorTypeNotFound {
+			s.logger.Warn("invite token not found",
+				zap.String("token", inviteLink),
+			)
+			return nil, domainerrors.NewNotFoundError("invite", inviteLink)
+		}
+		// Любая другая ошибка БД
+		s.logger.Error("failed to check invite token",
+			zap.String("token", inviteLink),
+			zap.Error(err),
+		)
+		return nil, err
+	}
+	return invite, nil
+}
+
+func (s *AuthService) validateUser(ctx context.Context, email string) error {
+	existingUser, err := s.userRepo.GetUserByEmail(ctx, email)
+	if err != nil {
+		var notFoundErr *domainerrors.DomainError
+		if !errors.As(err, &notFoundErr) || notFoundErr.Type != domainerrors.ErrorTypeNotFound {
+			s.logger.Error("failed to check user existence",
+				zap.String("email", email),
+				zap.Error(err),
+			)
+			return err
+		}
+	}
+	if existingUser != nil {
+		s.logger.Warn("registration attempt for existing user",
+			zap.String("email", email),
+		)
+		return domainerrors.NewAlreadyExistsError("user", "email", email)
+	}
+	return nil
+}
+
+func (s *AuthService) hashPassword(password string) (string, error) {
+	hashPassword, err := s.passwordHasher.HashPassword(password)
+	if err != nil {
+		s.logger.Error("failed to hash password",
+			zap.Error(err),
+		)
+		return "", domainerrors.NewInternalError("failed to secure password", err)
+	}
+	return hashPassword, nil
 }

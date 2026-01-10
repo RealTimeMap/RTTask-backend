@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"rttask/internal/domain/service/auth"
+	"rttask/internal/domain/service/file"
 	"rttask/internal/domain/valueobject"
 	"rttask/internal/infrastructure/security"
 	"rttask/internal/transport/dto"
@@ -99,16 +100,30 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
+	traceID := response.GetTraceID(c)
 
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID).WithInstance(c.Request.URL.Path)
+		problem.Send(c)
 		return
 	}
 	cred, err := h.validateCredentials(c, req.Email, req.Password)
 	if err != nil {
-		problem := h.mapper.MapError(c, err)
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID).WithInstance(c.Request.URL.Path)
 		problem.Send(c)
 		return
+	}
+	var fileInput *file.FileInput
+	if req.Avatar != nil {
+		input, err := file.NewFileInput(req.Avatar, "user", 0)
+		if err != nil {
+			h.logger.Error("error creating file input", zap.Error(err))
+			problem := h.mapper.MapError(c, err)
+			problem.Send(c)
+			return
+		}
+		defer input.File.Close()
+		fileInput = &input
 	}
 
 	input := auth.RegisterInput{
@@ -118,10 +133,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Password:   cred.Password,
 		InviteLink: req.InviteLink,
 	}
-	user, err := h.authService.Register(c.Request.Context(), input)
+	user, err := h.authService.Register(c.Request.Context(), input, fileInput)
 	if err != nil {
 
-		problem := h.mapper.MapError(c, err).WithTraceID(response.GetTraceID(c)).WithInstance(c.Request.URL.Path)
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID).WithInstance(c.Request.URL.Path)
 		problem.Send(c)
 		return
 	}

@@ -55,3 +55,11 @@ func (r *PgUserRepository) GetUserByIDWithRoles(ctx context.Context, id uint) (*
 	}
 	return user, nil
 }
+
+func (r *PgUserRepository) IsUserInCompany(ctx context.Context, userID uint, companyID uint) (bool, error) {
+	var user model.User
+	user.ID = userID
+
+	count := r.db.WithContext(ctx).Model(&user).Where("id = ?", companyID).Association("Companies").Count()
+	return count > 0, nil
+}

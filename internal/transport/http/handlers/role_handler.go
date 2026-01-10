@@ -23,7 +23,7 @@ func InitRoleHandler(r *gin.RouterGroup, service *role.RoleService, logger *zap.
 	g := r.Group("/role")
 	{
 		g.POST("/", middleware.AuthMiddleware(manager, logger, mapper), h.CreateRole)
-		g.POST("/permissions", h.GetAllPermissions)
+		g.GET("/permissions", h.GetAllPermissions)
 	}
 }
 

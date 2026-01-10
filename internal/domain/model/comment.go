@@ -8,6 +8,6 @@ type Comment struct {
 	UserID  uint
 	User    User `gorm:"foreignKey:UserID"`
 	TaskID  uint
-	Task    Task `gorm:"foreignKey:TaskID"`
-	// Files
+	Task    Task    `gorm:"foreignKey:TaskID"`
+	Files   []*File `gorm:"type:jsonb;serializer:json"`
 }

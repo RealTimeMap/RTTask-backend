@@ -7,6 +7,5 @@ type Company struct {
 	Name        string `gorm:"unique"`
 	Description string `gorm:"type:text"`
 
-	AvatarID *uint
-	Avatar   *File `gorm:"foreignKey:AvatarID"`
+	Avatar *File `gorm:"type:jsonb;serializer:json"`
 }

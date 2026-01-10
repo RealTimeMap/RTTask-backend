@@ -40,6 +40,8 @@ func main() {
 	logger, _ := zap.NewProduction() // вынести в MustNewLogger
 	defer logger.Sync()
 
+	logger.Info("current time", zap.Time("time", time.Now().UTC()))
+
 	db := postgres.MustNewConn(cfg.Database, logger)
 	db.AutoMigrate(
 		&rbac.Role{},
@@ -98,6 +100,8 @@ func main() {
 	handlers.InitAuthHandler(router.Group("/"), container.JWTManager, container.AuthService)
 	handlers.InitInviteHandler(router.Group("/"), container.InviteService, logger, container.JWTManager, container.Mapper)
 	handlers.InitRoleHandler(router.Group("/"), container.RoleService, logger, container.JWTManager, container.Mapper)
+	handlers.InitCompanyHandler(router.Group("/"), container.CompanyService, logger, container.JWTManager, container.Mapper)
+	handlers.InitTaskHandler(router.Group("/"), container.TaskService, logger, container.JWTManager, container.Mapper)
 
 	router.Run(":8081")
 }

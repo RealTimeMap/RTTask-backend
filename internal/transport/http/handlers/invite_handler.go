@@ -54,7 +54,7 @@ func (h *InviteHandler) CreateInvite(c *gin.Context) {
 		return
 	}
 	h.logger.Info("ids", zap.Any("ids", req.RolesIDs))
-	rawData := invite.NewInviteInput(req.RolesIDs)
+	rawData := invite.NewInviteInput(req.Description, req.RolesIDs)
 
 	newInvite, err := h.service.CreateInvite(c.Request.Context(), rawData, userID)
 

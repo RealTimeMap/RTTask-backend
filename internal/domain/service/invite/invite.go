@@ -45,7 +45,7 @@ func (s *InviteService) CreateInvite(ctx context.Context, input InviteInput, use
 	}
 
 	// Создание записи
-	invite := &model.InviteLink{Token: input.Token, Roles: roles, UserID: userID}
+	invite := &model.InviteLink{Token: input.Token, Description: input.Description, Roles: roles, UserID: userID}
 	invite, err = s.inviteRepo.Create(ctx, invite)
 	if err != nil {
 		return nil, err

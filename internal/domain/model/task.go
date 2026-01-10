@@ -22,6 +22,8 @@ type Task struct {
 	Creator     User `gorm:"foreignkey:CreatorID"`
 	ExecutorID  uint
 	Executor    User `gorm:"foreignkey:ExecutorID"`
+	Title       string
+	Description string
 	Status      Status
 	Priority    uint `gorm:"default:1"`
 	CompanyID   uint
@@ -30,5 +32,5 @@ type Task struct {
 	DeadlineAt  time.Time
 	CompletedAt time.Time
 
-	Files []File `gorm:"polymorphic:Entity;polymorphicValue:task"`
+	Files []*File `gorm:"type:jsonb;serializer:json"`
 }

@@ -1,5 +1,7 @@
 package dto
 
+import "mime/multipart"
+
 // REQUEST
 
 type LoginRequest struct {
@@ -8,11 +10,12 @@ type LoginRequest struct {
 }
 
 type RegisterRequest struct {
-	Email      string `form:"email" binding:"required"`
-	FirstName  string `form:"firstName" binding:"required"`
-	LastName   string `form:"lastName" binding:"required"`
-	Password   string `form:"password" binding:"required"`
-	InviteLink string `form:"inviteLink" binding:"required"`
+	Email      string                `form:"email" binding:"required"`
+	FirstName  string                `form:"firstName" binding:"required"`
+	LastName   string                `form:"lastName" binding:"required"`
+	Password   string                `form:"password" binding:"required"`
+	InviteLink string                `form:"inviteLink" binding:"required"`
+	Avatar     *multipart.FileHeader `form:"avatar"`
 }
 
 // RESPONSE
