@@ -34,3 +34,14 @@ type Task struct {
 
 	Files []*File `gorm:"type:jsonb;serializer:json"`
 }
+
+type TaskStatusGroup struct {
+	Status Status
+	Tasks  []*Task
+	Count  int64
+}
+
+type GroupedTasksByStatus struct {
+	Groups     []*TaskStatusGroup
+	TotalCount int64
+}

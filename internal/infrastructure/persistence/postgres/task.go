@@ -31,18 +31,70 @@ func (r *PgTaskRepository) Create(ctx context.Context, task *model.Task) (*model
 	return task, nil
 }
 
-func (r *PgTaskRepository) GetUserTasks(ctx context.Context, params valueobject.PaginationParams, userID uint) ([]*model.Task, error) {
+func (r *PgTaskRepository) GetUserTasks(ctx context.Context, userID uint) (*model.GroupedTasksByStatus, error) {
 	r.logger.Info("start TaskRepository.GetUserTasks")
-	var tasks []*model.Task
+
+	type StatusCount struct {
+		Status model.Status
+		Count  int64
+	}
+
+	var statusCounts []StatusCount
 	err := r.db.WithContext(ctx).
 		Model(&model.Task{}).
-		Order("created_at desc").
-		Offset(params.Offset).
-		Limit(params.Limit).
-		Where("user_id = ?", userID).
-		Find(&tasks).Error
+		Select("status, COUNT(*) as count").
+		Where("executor_id = ?", userID).
+		Group("status").
+		Find(&statusCounts).Error
 	if err != nil {
 		return nil, MapGormError(err, "task")
 	}
-	return tasks, nil
+
+	result := &model.GroupedTasksByStatus{
+		Groups:     make([]*model.TaskStatusGroup, 0),
+		TotalCount: 0,
+	}
+
+	for _, sc := range statusCounts {
+		var tasks []*model.Task
+		err := r.db.WithContext(ctx).
+			Model(&model.Task{}).
+			Preload("Creator").
+			Preload("Executor").
+			Preload("Company").
+			Where("executor_id = ? AND status = ?", userID, sc.Status).
+			Find(&tasks).Error
+		if err != nil {
+			return nil, MapGormError(err, "task")
+		}
+
+		result.Groups = append(result.Groups, &model.TaskStatusGroup{
+			Status: sc.Status,
+			Tasks:  tasks,
+			Count:  sc.Count,
+		})
+		result.TotalCount += sc.Count
+	}
+
+	return result, nil
+}
+
+func (r *PgTaskRepository) GetTasks(ctx context.Context, params valueobject.TaskFilterList) ([]*model.Task, int64, error) {
+	r.logger.Info("start TaskRepository.GetTasks")
+	var tasks []*model.Task
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.Task{}).
+		Preload("Creator").
+		Preload("Executor").
+		Preload("Company").
+		Order(params.GetOrderBy()).
+		Offset(params.Offset).
+		Limit(params.Limit).
+		Where("company_id = ?", params.CompanyID).
+		Count(&count).
+		Find(&tasks).Error
+	if err != nil {
+		return nil, 0, MapGormError(err, "task")
+	}
+	return tasks, count, nil
 }

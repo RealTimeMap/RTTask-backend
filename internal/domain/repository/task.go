@@ -8,7 +8,7 @@ import (
 
 type TaskRepository interface {
 	Create(ctx context.Context, task *model.Task) (*model.Task, error)
-	GetUserTasks(ctx context.Context, params valueobject.PaginationParams, userID uint) ([]*model.Task, error)
-	// GetAllForCompany()
+	GetUserTasks(ctx context.Context, userID uint) (*model.GroupedTasksByStatus, error)
+	GetTasks(ctx context.Context, params valueobject.TaskFilterList) ([]*model.Task, int64, error)
 	// GetByID()
 }

@@ -12,9 +12,10 @@ type CompanyRequest struct {
 }
 
 type CompanyResponse struct {
-	ID          uint   `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	ID          uint          `json:"id"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Logo        *FileResponse `json:"logo,omitempty"`
 }
 
 func NewCompanyResponse(company *model.Company) CompanyResponse {
@@ -22,6 +23,7 @@ func NewCompanyResponse(company *model.Company) CompanyResponse {
 		ID:          company.ID,
 		Name:        company.Name,
 		Description: company.Description,
+		Logo:        NewFileResponse(company.Avatar),
 	}
 }
 

@@ -9,10 +9,79 @@ definitions:
       type:
         type: string
     type: object
-  dto.InviteResponse:
+  dto.CompanyPaginationResponse:
     properties:
+      hasNext:
+        type: boolean
+      hasPrev:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/dto.CompanyResponse'
+        type: array
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  dto.CompanyResponse:
+    properties:
+      description:
+        type: string
       id:
         type: integer
+      logo:
+        $ref: '#/definitions/dto.FileResponse'
+      name:
+        type: string
+    type: object
+  dto.FileResponse:
+    properties:
+      id:
+        type: string
+      mimeType:
+        type: string
+      name:
+        type: string
+      size:
+        type: integer
+      url:
+        type: string
+    type: object
+  dto.GroupedTasksByStatusResponse:
+    properties:
+      groups:
+        items:
+          $ref: '#/definitions/dto.TaskStatusGroupResponse'
+        type: array
+      totalCount:
+        type: integer
+    type: object
+  dto.InvitePaginationResponse:
+    properties:
+      hasNext:
+        type: boolean
+      hasPrev:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/dto.InviteResponse'
+        type: array
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  dto.InviteResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      roles:
+        items:
+          type: string
+        type: array
       token:
         type: string
     type: object
@@ -41,6 +110,65 @@ definitions:
       permissions:
         items:
           type: string
+        type: array
+    type: object
+  dto.TaskPaginationResponse:
+    properties:
+      hasNext:
+        type: boolean
+      hasPrev:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/dto.TaskResponse'
+        type: array
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  dto.TaskResponse:
+    properties:
+      company:
+        $ref: '#/definitions/dto.CompanyResponse'
+      completedAt:
+        type: string
+      createdAt:
+        type: string
+      creator:
+        $ref: '#/definitions/dto.UserResponse'
+      deadlineAt:
+        type: string
+      description:
+        type: string
+      executor:
+        $ref: '#/definitions/dto.UserResponse'
+      files:
+        items:
+          $ref: '#/definitions/dto.FileResponse'
+        type: array
+      id:
+        type: integer
+      priority:
+        type: integer
+      startAt:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  dto.TaskStatusGroupResponse:
+    properties:
+      count:
+        type: integer
+      status:
+        type: string
+      tasks:
+        items:
+          $ref: '#/definitions/dto.TaskResponse'
         type: array
     type: object
   dto.UserResponse:
@@ -173,7 +301,131 @@ paths:
       summary: User registration
       tags:
       - auth
+  /company:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of all companies
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved companies
+          schema:
+            $ref: '#/definitions/dto.CompanyPaginationResponse'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Get companies list
+      tags:
+      - companies
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new company with avatar image
+      parameters:
+      - description: Company name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Company description
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Company avatar image
+        in: formData
+        name: avatar
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created company
+          schema:
+            $ref: '#/definitions/dto.CompanyResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Create new company
+      tags:
+      - companies
   /invite:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of all invite links created by the authenticated
+        user
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved invite links
+          schema:
+            $ref: '#/definitions/dto.InvitePaginationResponse'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Get all invite links
+      tags:
+      - invite
     post:
       consumes:
       - application/json
@@ -250,6 +502,161 @@ paths:
       summary: Systems permissions
       tags:
       - roles
+  /task:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated and filtered list of tasks for a company
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      - description: Company ID
+        in: query
+        name: companyId
+        required: true
+        type: integer
+      - default: createdAt
+        description: Sort field (createdAt, priority)
+        in: query
+        name: sortBy
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sortOrder
+        type: string
+      - default: false
+        description: Show completed tasks
+        in: query
+        name: showCompleted
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved tasks
+          schema:
+            $ref: '#/definitions/dto.TaskPaginationResponse'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Get tasks list
+      tags:
+      - tasks
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new task with files attachments
+      parameters:
+      - description: Task title
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Task description
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Task priority
+        in: formData
+        name: priority
+        required: true
+        type: integer
+      - description: Executor user ID
+        in: formData
+        name: executorId
+        required: true
+        type: integer
+      - description: Company ID
+        in: formData
+        name: companyId
+        required: true
+        type: integer
+      - description: Start date
+        format: date-time
+        in: formData
+        name: startAt
+        required: true
+        type: string
+      - description: Deadline date
+        format: date-time
+        in: formData
+        name: deadlineAt
+        required: true
+        type: string
+      - description: Task files
+        in: formData
+        name: files
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created task
+          schema:
+            $ref: '#/definitions/dto.TaskResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Create new task
+      tags:
+      - tasks
+  /task/my:
+    get:
+      consumes:
+      - application/json
+      description: Get all tasks assigned to the authenticated user, grouped by status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved grouped tasks
+          schema:
+            $ref: '#/definitions/dto.GroupedTasksByStatusResponse'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Get user tasks grouped by status
+      tags:
+      - tasks
 schemes:
 - https
 securityDefinitions:

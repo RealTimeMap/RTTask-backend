@@ -42,3 +42,29 @@ func NewPaginationResponse[T any](items []T, params PaginationRequest, total int
 		HasPrev:    params.Page > 1,
 	}
 }
+
+// Concrete types for Swagger documentation
+
+type TaskPaginationResponse struct {
+	Items      []TaskResponse `json:"items"`
+	TotalPages int            `json:"totalPages"`
+	Total      int64          `json:"total"`
+	HasNext    bool           `json:"hasNext"`
+	HasPrev    bool           `json:"hasPrev"`
+}
+
+type CompanyPaginationResponse struct {
+	Items      []CompanyResponse `json:"items"`
+	TotalPages int               `json:"totalPages"`
+	Total      int64             `json:"total"`
+	HasNext    bool              `json:"hasNext"`
+	HasPrev    bool              `json:"hasPrev"`
+}
+
+type InvitePaginationResponse struct {
+	Items      []InviteResponse `json:"items"`
+	TotalPages int              `json:"totalPages"`
+	Total      int64            `json:"total"`
+	HasNext    bool             `json:"hasNext"`
+	HasPrev    bool             `json:"hasPrev"`
+}

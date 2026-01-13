@@ -33,6 +33,21 @@ func InitCompanyHandler(g *gin.RouterGroup, service *company.CompanyService, log
 	}
 }
 
+// CreateCompany godoc
+// @Summary Create new company
+// @Description Create a new company with avatar image
+// @Tags companies
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param name formData string true "Company name"
+// @Param description formData string true "Company description"
+// @Param avatar formData file true "Company avatar image"
+// @Success 201 {object} dto.CompanyResponse "Successfully created company"
+// @Failure 400 {object} response.ProblemDetail "Invalid request body"
+// @Failure 401 {object} response.ProblemDetail "Unauthorized - invalid or missing token"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /company [post]
 func (h *CompanyHandler) CreateCompany(c *gin.Context) {
 	var req dto.CompanyRequest
 	userID := response.GetUserID(c)
@@ -65,10 +80,24 @@ func (h *CompanyHandler) CreateCompany(c *gin.Context) {
 		problem.Send(c)
 		return
 	}
-
-	c.JSON(http.StatusCreated, newCompany)
+	res := dto.NewCompanyResponse(newCompany)
+	c.JSON(http.StatusCreated, res)
 }
 
+// GetCompanies godoc
+// @Summary Get companies list
+// @Description Get paginated list of all companies
+// @Tags companies
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number" default(1)
+// @Param pageSize query int false "Page size" default(10)
+// @Success 200 {object} dto.CompanyPaginationResponse "Successfully retrieved companies"
+// @Failure 400 {object} response.ProblemDetail "Invalid query parameters"
+// @Failure 401 {object} response.ProblemDetail "Unauthorized - invalid or missing token"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /company [get]
 func (h *CompanyHandler) GetCompanies(c *gin.Context) {
 	var params dto.PaginationRequest
 	params.Default()

@@ -69,6 +69,20 @@ func (h *InviteHandler) CreateInvite(c *gin.Context) {
 
 }
 
+// GetAll godoc
+// @Summary Get all invite links
+// @Description Get paginated list of all invite links created by the authenticated user
+// @Tags invite
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number" default(1)
+// @Param pageSize query int false "Page size" default(10)
+// @Success 200 {object} dto.InvitePaginationResponse "Successfully retrieved invite links"
+// @Failure 400 {object} response.ProblemDetail "Invalid query parameters"
+// @Failure 401 {object} response.ProblemDetail "Unauthorized - invalid or missing token"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /invite [get]
 func (h *InviteHandler) GetAll(c *gin.Context) {
 	var params dto.PaginationRequest
 	params.Default()

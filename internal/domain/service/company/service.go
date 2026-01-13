@@ -2,6 +2,7 @@ package company
 
 import (
 	"context"
+	"errors"
 	domainerrors "rttask/internal/domain/errors"
 	"rttask/internal/domain/model"
 	"rttask/internal/domain/model/rbac"
@@ -70,6 +71,10 @@ func (s *CompanyService) GetAll(ctx context.Context, params valueobject.Paginati
 func (s *CompanyService) validateCompanyUnique(ctx context.Context, input CompanyInput) error {
 	existCompany, err := s.companyRepo.GetByName(ctx, input.Name)
 	if err != nil {
+		var notFoundErr *domainerrors.DomainError
+		if errors.As(err, &notFoundErr) || notFoundErr.Type != domainerrors.ErrorTypeNotFound {
+			return nil
+		}
 		return err
 	}
 	if existCompany != nil {

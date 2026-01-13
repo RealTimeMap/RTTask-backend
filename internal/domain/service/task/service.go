@@ -9,6 +9,7 @@ import (
 	"rttask/internal/domain/model/rbac"
 	"rttask/internal/domain/repository"
 	"rttask/internal/domain/service/file"
+	"rttask/internal/domain/valueobject"
 	"time"
 
 	"go.uber.org/zap"
@@ -34,7 +35,7 @@ func NewTaskService(taskRepo repository.TaskRepository, userRepo repository.User
 
 func (s *TaskService) CreateTask(ctx context.Context, input TaskInput, filesInput []file.FileInput, userID uint) (*model.Task, error) {
 	// Валидация пользователя кем поставлена задача
-	if err := s.validateCreator(ctx, userID, rbac.TaskCreate, rbac.TaskAssign); err != nil {
+	if err := s.validateUser(ctx, userID, rbac.TaskCreate, rbac.TaskAssign); err != nil {
 		s.logger.Error("failed to validate user", zap.Error(err))
 		return nil, err
 	}
@@ -88,7 +89,37 @@ func (s *TaskService) CreateTask(ctx context.Context, input TaskInput, filesInpu
 	return newTask, nil
 }
 
-func (s *TaskService) validateCreator(ctx context.Context, userID uint, permissions ...rbac.Permission) error {
+func (s *TaskService) GetTasks(ctx context.Context, params valueobject.TaskFilterList, userID uint) ([]*model.Task, int64, error) {
+	if err := s.validateUser(ctx, userID, rbac.TaskView, rbac.TaskList); err != nil {
+		return nil, 0, err
+	}
+	if err := s.validateCompany(ctx, params.CompanyID); err != nil {
+		return nil, 0, err
+	}
+
+	tasks, total, err := s.taskRepo.GetTasks(ctx, params)
+	if err != nil {
+		s.logger.Error("failed to get tasks", zap.Error(err))
+		return nil, 0, err
+	}
+	return tasks, total, nil
+
+}
+
+func (s *TaskService) GetUserTasks(ctx context.Context, userID uint) (*model.GroupedTasksByStatus, error) {
+	if err := s.validateUser(ctx, userID, rbac.TaskView, rbac.TaskList); err != nil {
+		return nil, err
+	}
+
+	tasks, err := s.taskRepo.GetUserTasks(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
+}
+
+func (s *TaskService) validateUser(ctx context.Context, userID uint, permissions ...rbac.Permission) error {
 	user, err := s.userRepo.GetUserByIDWithRoles(ctx, userID)
 	if err != nil {
 		return err
@@ -117,11 +148,8 @@ func (s *TaskService) validateCompany(ctx context.Context, companyID uint) error
 	_, err := s.companyRepo.GetByID(ctx, companyID)
 	if err != nil {
 		var notFoundErr *domainerrors.DomainError
-		if !errors.As(err, &notFoundErr) || notFoundErr.Type != domainerrors.ErrorTypeNotFound {
-			s.logger.Error("failed to check company existence",
-				zap.Uint("companyID", companyID),
-				zap.Error(err),
-			)
+		if errors.As(err, &notFoundErr) || notFoundErr.Type != domainerrors.ErrorTypeNotFound {
+			s.logger.Info("company not found", zap.Uint("companyID", companyID))
 			return err
 		}
 	}

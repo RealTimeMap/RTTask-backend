@@ -140,7 +140,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		problem.Send(c)
 		return
 	}
-	c.JSON(http.StatusCreated, dto.NewUserResponse(user))
+	c.JSON(http.StatusCreated, dto.NewUserDetailResponse(user))
 }
 
 func (h *AuthHandler) validateCredentials(c *gin.Context, email, password string) (*credentials, error) {
