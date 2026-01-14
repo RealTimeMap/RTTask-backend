@@ -56,6 +56,9 @@ func NewContainer(cfg config.Config, db *gorm.DB, logger *zap.Logger) *Container
 	roleService := role.NewRoleService(roleRepo, userRepo, logger)
 	companyService := company.NewCompanyService(companyRepo, userRepo, fileService, logger)
 	taskService := task.NewTaskService(taskRepo, userRepo, companyRepo, fileService, logger)
+
+	// Сокет
+
 	return &Container{
 		AuthService:    authService,
 		InviteService:  inviteService,

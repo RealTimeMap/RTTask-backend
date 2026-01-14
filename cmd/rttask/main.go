@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"rttask/internal/app"
 	"rttask/internal/config"
 	"rttask/internal/domain/model"
@@ -10,6 +11,7 @@ import (
 	"rttask/internal/scripts"
 	"rttask/internal/transport/http/handlers"
 	"rttask/internal/transport/http/middleware"
+	socketio "rttask/internal/transport/socket"
 	"time"
 
 	_ "rttask/docs"
@@ -64,11 +66,21 @@ func main() {
 	scripts.AssignAdminRoleToAdmin(ctx, cfg.Admin, logger, container.RoleRepository, db)
 
 	router := gin.Default()
+
 	router.Use(middleware.TraceMiddleware())
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://rt-task-frontend.vercel.app", "https://realtimemap.ru", "http://localhost:5173", "http://localhost:1420", "http://localhost:8080"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Trace-Id"},
+		AllowOrigins: []string{"https://rt-task-frontend.vercel.app", "https://realtimemap.ru", "http://localhost:5173", "http://localhost:1420", "http://localhost:8080", "http://localhost:8081", "http://127.0.0.1:5500"},
+		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+			"X-Trace-Id",
+			"Upgrade",
+			"Connection",
+			"Sec-WebSocket-Key",
+		},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -103,5 +115,14 @@ func main() {
 	handlers.InitCompanyHandler(router.Group("/"), container.CompanyService, logger, container.JWTManager, container.Mapper)
 	handlers.InitTaskHandler(router.Group("/"), container.TaskService, logger, container.JWTManager, container.Mapper)
 
-	router.Run(":8081")
+	// === Socket.IO Server ===
+	socketServer := socketio.NewServer(logger, container.JWTManager, container.TaskService)
+	router.GET("/socket.io/*any", gin.WrapH(socketServer.Handler()))
+	router.POST("/socket.io/*any", gin.WrapH(socketServer.Handler()))
+
+	// Запускаем HTTP сервер
+	logger.Info("Starting server on :8081")
+	if err := http.ListenAndServe(":8081", router); err != nil {
+		logger.Fatal("Failed to start server", zap.Error(err))
+	}
 }

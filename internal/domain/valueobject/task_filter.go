@@ -32,18 +32,6 @@ func NewTaskFilterBase(page, pageSize int, sortBy, sortOrder string) TaskFilterB
 	}
 }
 
-type TaskFilterUser struct {
-	TaskFilterBase
-	UserID uint
-}
-
-func NewTaskFilterUser(page, pageSize int, sortBy, sortOrder string, userID uint) TaskFilterUser {
-	return TaskFilterUser{
-		TaskFilterBase: NewTaskFilterBase(page, pageSize, sortBy, sortOrder),
-		UserID:         userID,
-	}
-}
-
 type TaskFilterList struct {
 	TaskFilterBase
 	CompanyID     uint

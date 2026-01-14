@@ -17,7 +17,7 @@ func NewLocalStorage(basePath string) FileStorage {
 		basePath: basePath,
 	}
 }
-func (s *LocalStorage) Save(ctx context.Context, file io.Reader, path string) error {
+func (s *LocalStorage) Save(_ context.Context, file io.Reader, path string) error {
 	fullPath := filepath.Join(s.basePath, path)
 
 	dir := filepath.Dir(fullPath)

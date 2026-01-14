@@ -81,7 +81,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		}
 		defer func() {
 			for _, input := range fileInputs {
-				input.File.Close()
+				_ = input.File.Close()
 			}
 		}()
 	}
