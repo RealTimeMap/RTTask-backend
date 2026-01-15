@@ -1,6 +1,7 @@
 package model
 
 import (
+	domainerrors "rttask/internal/domain/errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -15,6 +16,14 @@ const (
 	CompletedStatus  Status = "Выполнена"
 	ImmediateStatus  Status = "Срочная"
 )
+
+func ParseStatus(s string) (Status, error) {
+	switch Status(s) {
+	case CreatedStatus, InWorkStatus, InProgressStatus, CompletedStatus, ImmediateStatus:
+		return Status(s), nil
+	}
+	return "", domainerrors.NewValidationError("invalid status")
+}
 
 type Task struct {
 	gorm.Model
@@ -44,4 +53,8 @@ type TaskStatusGroup struct {
 type GroupedTasksByStatus struct {
 	Groups     []*TaskStatusGroup
 	TotalCount int64
+}
+
+type TaskNotifier interface {
+	NotifyNewTask(task *Task)
 }

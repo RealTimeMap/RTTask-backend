@@ -171,6 +171,13 @@ definitions:
           $ref: '#/definitions/dto.TaskResponse'
         type: array
     type: object
+  dto.TaskStatusUpdateRequest:
+    properties:
+      status:
+        type: string
+    required:
+    - status
+    type: object
   dto.UserResponse:
     properties:
       email:
@@ -630,6 +637,99 @@ paths:
       security:
       - BearerAuth: []
       summary: Create new task
+      tags:
+      - tasks
+  /task/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing task by ID. Requires 'task:delete' permission.
+        Only the task creator or users with delete permission can delete tasks
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Successfully deleted task
+        "400":
+          description: Invalid task ID
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "403":
+          description: Forbidden - missing permission
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Delete task
+      tags:
+      - tasks
+  /task/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: 'Change the status of an existing task. Only the task executor
+        or creator can change the status. Requires ''task:changeStatus'' permission.
+        Valid statuses: "Новый", "В работе", "В доработке", "Выполнена", "Срочная"'
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.TaskStatusUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully updated task status
+          schema:
+            $ref: '#/definitions/dto.TaskResponse'
+        "400":
+          description: Invalid request body or invalid status transition
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "403":
+          description: Forbidden - not executor/creator or missing permission
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Update task status
       tags:
       - tasks
   /task/my:

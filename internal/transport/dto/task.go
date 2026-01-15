@@ -144,3 +144,7 @@ func NewGroupedTasksByStatusResponse(grouped *model.GroupedTasksByStatus) Groupe
 		TotalCount: grouped.TotalCount,
 	}
 }
+
+type TaskStatusUpdateRequest struct {
+	Status string `form:"status" json:"status" binding:"required"`
+}

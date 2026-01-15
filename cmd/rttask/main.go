@@ -11,7 +11,6 @@ import (
 	"rttask/internal/scripts"
 	"rttask/internal/transport/http/handlers"
 	"rttask/internal/transport/http/middleware"
-	socketio "rttask/internal/transport/socket"
 	"time"
 
 	_ "rttask/docs"
@@ -69,7 +68,7 @@ func main() {
 
 	router.Use(middleware.TraceMiddleware())
 	router.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"https://rt-task-frontend.vercel.app", "https://realtimemap.ru", "http://localhost:5173", "http://localhost:1420", "http://localhost:8080", "http://localhost:8081", "http://127.0.0.1:5500"},
+		AllowOrigins: []string{"https://rt-task-frontend.vercel.app", "https://realtimemap.ru", "http://localhost:5173", "http://localhost:1420", "http://localhost:3000", "http://localhost:8080", "http://localhost:8081", "http://127.0.0.1:5500"},
 		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		AllowHeaders: []string{
 			"Origin",
@@ -116,7 +115,7 @@ func main() {
 	handlers.InitTaskHandler(router.Group("/"), container.TaskService, logger, container.JWTManager, container.Mapper)
 
 	// === Socket.IO Server ===
-	socketServer := socketio.NewServer(logger, container.JWTManager, container.TaskService)
+	socketServer := container.Socket
 	router.GET("/socket.io/*any", gin.WrapH(socketServer.Handler()))
 	router.POST("/socket.io/*any", gin.WrapH(socketServer.Handler()))
 

@@ -15,16 +15,19 @@ import (
 	"go.uber.org/zap"
 )
 
-type TaskService struct {
+type Service struct {
 	taskRepo    repository.TaskRepository
 	userRepo    repository.UserRepository
 	companyRepo repository.CompanyRepository
+
+	notifier model.TaskNotifier
+
 	fileService *file.FileService
 	logger      *zap.Logger
 }
 
-func NewTaskService(taskRepo repository.TaskRepository, userRepo repository.UserRepository, companyRepo repository.CompanyRepository, fileService *file.FileService, logger *zap.Logger) *TaskService {
-	return &TaskService{
+func NewTaskService(taskRepo repository.TaskRepository, userRepo repository.UserRepository, companyRepo repository.CompanyRepository, fileService *file.FileService, logger *zap.Logger) *Service {
+	return &Service{
 		taskRepo:    taskRepo,
 		userRepo:    userRepo,
 		companyRepo: companyRepo,
@@ -33,7 +36,11 @@ func NewTaskService(taskRepo repository.TaskRepository, userRepo repository.User
 	}
 }
 
-func (s *TaskService) CreateTask(ctx context.Context, input TaskInput, filesInput []file.FileInput, userID uint) (*model.Task, error) {
+func (s *Service) SetNotifier(notifier model.TaskNotifier) {
+	s.notifier = notifier
+}
+
+func (s *Service) CreateTask(ctx context.Context, input TaskInput, filesInput []file.FileInput, userID uint) (*model.Task, error) {
 	// Валидация пользователя кем поставлена задача
 	if err := s.validateUser(ctx, userID, rbac.TaskCreate, rbac.TaskAssign); err != nil {
 		s.logger.Error("failed to validate user", zap.Error(err))
@@ -86,10 +93,12 @@ func (s *TaskService) CreateTask(ctx context.Context, input TaskInput, filesInpu
 		return nil, err
 	}
 
+	go s.notifier.NotifyNewTask(newTask)
+
 	return newTask, nil
 }
 
-func (s *TaskService) GetTasks(ctx context.Context, params valueobject.TaskFilterList, userID uint) ([]*model.Task, int64, error) {
+func (s *Service) GetTasks(ctx context.Context, params valueobject.TaskFilterList, userID uint) ([]*model.Task, int64, error) {
 	if err := s.validateUser(ctx, userID, rbac.TaskView, rbac.TaskList); err != nil {
 		return nil, 0, err
 	}
@@ -106,7 +115,7 @@ func (s *TaskService) GetTasks(ctx context.Context, params valueobject.TaskFilte
 
 }
 
-func (s *TaskService) GetUserTasks(ctx context.Context, userID uint) (*model.GroupedTasksByStatus, error) {
+func (s *Service) GetUserTasks(ctx context.Context, userID uint) (*model.GroupedTasksByStatus, error) {
 	if err := s.validateUser(ctx, userID, rbac.TaskView, rbac.TaskList); err != nil {
 		return nil, err
 	}
@@ -119,7 +128,50 @@ func (s *TaskService) GetUserTasks(ctx context.Context, userID uint) (*model.Gro
 	return tasks, nil
 }
 
-func (s *TaskService) validateUser(ctx context.Context, userID uint, permissions ...rbac.Permission) error {
+func (s *Service) ChangeTaskStatus(ctx context.Context, taskID uint, status string, userID uint) (*model.Task, error) {
+	if err := s.validateUser(ctx, userID, rbac.TaskChangeStatus); err != nil {
+		return nil, err
+	}
+	task, err := s.taskRepo.GetByID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	if task.ExecutorID != userID || task.CreatorID != userID {
+		return nil, domainerrors.NewForbiddenError("task does not own user")
+	}
+
+	newStatus, err := model.ParseStatus(status)
+	if err != nil {
+		return nil, err
+	}
+
+	task.Status = newStatus
+
+	updatedTask, err := s.taskRepo.Update(ctx, task)
+	if err != nil {
+		return nil, err
+	}
+
+	return updatedTask, nil
+
+}
+
+func (s *Service) DeleteTask(ctx context.Context, taskID, userID uint) error {
+	if err := s.validateUser(ctx, userID, rbac.TaskDelete); err != nil {
+		return err
+	}
+	_, err := s.taskRepo.GetByID(ctx, taskID)
+	if err != nil {
+		return err
+	}
+	if err = s.taskRepo.Delete(ctx, taskID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) validateUser(ctx context.Context, userID uint, permissions ...rbac.Permission) error {
 	user, err := s.userRepo.GetUserByIDWithRoles(ctx, userID)
 	if err != nil {
 		return err
@@ -130,7 +182,7 @@ func (s *TaskService) validateUser(ctx context.Context, userID uint, permissions
 	return nil
 }
 
-func (s *TaskService) validateExecutor(ctx context.Context, executorID uint, companyID uint) error {
+func (s *Service) validateExecutor(ctx context.Context, executorID uint, companyID uint) error {
 	executor, err := s.userRepo.GetUserByIDWithRoles(ctx, executorID)
 	if err != nil {
 		return err
@@ -144,7 +196,7 @@ func (s *TaskService) validateExecutor(ctx context.Context, executorID uint, com
 	return nil
 }
 
-func (s *TaskService) validateCompany(ctx context.Context, companyID uint) error {
+func (s *Service) validateCompany(ctx context.Context, companyID uint) error {
 	_, err := s.companyRepo.GetByID(ctx, companyID)
 	if err != nil {
 		var notFoundErr *domainerrors.DomainError
@@ -156,7 +208,7 @@ func (s *TaskService) validateCompany(ctx context.Context, companyID uint) error
 	return nil
 }
 
-func (s *TaskService) checkUserInCompany(ctx context.Context, userID uint, companyID uint) error {
+func (s *Service) checkUserInCompany(ctx context.Context, userID uint, companyID uint) error {
 	inCompany, err := s.userRepo.IsUserInCompany(ctx, userID, companyID)
 	if err != nil {
 		return err
@@ -168,7 +220,7 @@ func (s *TaskService) checkUserInCompany(ctx context.Context, userID uint, compa
 
 }
 
-func (s *TaskService) validateTimeRange(startAt time.Time, deadlineAt time.Time) error {
+func (s *Service) validateTimeRange(startAt time.Time, deadlineAt time.Time) error {
 	now := time.Now()
 
 	if deadlineAt.Before(startAt) {

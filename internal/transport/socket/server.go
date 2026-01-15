@@ -15,10 +15,10 @@ type Server struct {
 	jwtManager security.JWTManager
 
 	// Namespaces
-	taskNamespace *TaskNamespace
+	TaskNamespace *TaskNamespace
 }
 
-func NewServer(logger *zap.Logger, jwtManager security.JWTManager, taskService *task.TaskService) *Server {
+func NewServer(logger *zap.Logger, jwtManager security.JWTManager, taskService *task.Service) *Server {
 	io := socket.NewServer(nil, nil)
 
 	s := &Server{
@@ -31,7 +31,7 @@ func NewServer(logger *zap.Logger, jwtManager security.JWTManager, taskService *
 	s.setupHandlers()
 
 	// Setup namespaces (auth middleware is inside each namespace)
-	s.taskNamespace = NewTaskNamespace(io, taskService, jwtManager, logger)
+	s.TaskNamespace = NewTaskNamespace(io, taskService, jwtManager, logger)
 
 	return s
 }

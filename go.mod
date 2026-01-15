@@ -69,6 +69,8 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
+	github.com/zishang520/socket.io/clients/engine/v3 v3.0.0-rc.11 // indirect
+	github.com/zishang520/socket.io/clients/socket/v3 v3.0.0-rc.11 // indirect
 	github.com/zishang520/socket.io/parsers/engine/v3 v3.0.0-rc.11 // indirect
 	github.com/zishang520/socket.io/parsers/socket/v3 v3.0.0-rc.11 // indirect
 	github.com/zishang520/socket.io/servers/engine/v3 v3.0.0-rc.11 // indirect
@@ -85,4 +87,5 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
+	resty.dev/v3 v3.0.0-beta.6 // indirect
 )

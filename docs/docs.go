@@ -699,6 +699,146 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/task/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete an existing task by ID. Requires 'task:delete' permission. Only the task creator or users with delete permission can delete tasks",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Delete task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successfully deleted task"
+                    },
+                    "400": {
+                        "description": "Invalid task ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - missing permission",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "404": {
+                        "description": "Task not found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    }
+                }
+            }
+        },
+        "/task/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Change the status of an existing task. Only the task executor or creator can change the status. Requires 'task:changeStatus' permission. Valid statuses: \"Новый\", \"В работе\", \"В доработке\", \"Выполнена\", \"Срочная\"",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Update task status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New status",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.TaskStatusUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully updated task status",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TaskResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or invalid status transition",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - not executor/creator or missing permission",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "404": {
+                        "description": "Task not found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -962,6 +1102,17 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.TaskResponse"
                     }
+                }
+            }
+        },
+        "dto.TaskStatusUpdateRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "string"
                 }
             }
         },

@@ -9,18 +9,19 @@ import (
 	"rttask/internal/transport/dto"
 	"rttask/internal/transport/http/middleware"
 	"rttask/internal/transport/http/response"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 type TaskHandler struct {
-	service *task.TaskService
+	service *task.Service
 	mapper  *response.ErrorMapper
 	logger  *zap.Logger
 }
 
-func InitTaskHandler(g *gin.RouterGroup, service *task.TaskService, logger *zap.Logger, manager security.JWTManager, mapper *response.ErrorMapper) {
+func InitTaskHandler(g *gin.RouterGroup, service *task.Service, logger *zap.Logger, manager security.JWTManager, mapper *response.ErrorMapper) {
 	h := &TaskHandler{
 		service: service,
 		mapper:  mapper,
@@ -31,6 +32,8 @@ func InitTaskHandler(g *gin.RouterGroup, service *task.TaskService, logger *zap.
 		r.POST("/", middleware.AuthMiddleware(manager, logger, mapper), h.CreateTask)
 		r.GET("/", middleware.AuthMiddleware(manager, logger, mapper), h.GetTasks)
 		r.GET("/my", middleware.AuthMiddleware(manager, logger, mapper), h.GetUserTasks)
+		r.PATCH("/:id/status", middleware.AuthMiddleware(manager, logger, mapper), h.UpdateTaskStatus)
+		r.DELETE("/:id", middleware.AuthMiddleware(manager, logger, mapper), h.DeleteTask)
 	}
 }
 
@@ -174,4 +177,81 @@ func (h *TaskHandler) GetUserTasks(c *gin.Context) {
 	}
 	res := dto.NewGroupedTasksByStatusResponse(tasks)
 	c.JSON(http.StatusOK, res)
+}
+
+// UpdateTaskStatus godoc
+// @Summary Update task status
+// @Description Change the status of an existing task. Only the task executor or creator can change the status. Requires 'task:changeStatus' permission. Valid statuses: "Новый", "В работе", "В доработке", "Выполнена", "Срочная"
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Task ID"
+// @Param request body dto.TaskStatusUpdateRequest true "New status"
+// @Success 200 {object} dto.TaskResponse "Successfully updated task status"
+// @Failure 400 {object} response.ProblemDetail "Invalid request body or invalid status transition"
+// @Failure 401 {object} response.ProblemDetail "Unauthorized - invalid or missing token"
+// @Failure 403 {object} response.ProblemDetail "Forbidden - not executor/creator or missing permission"
+// @Failure 404 {object} response.ProblemDetail "Task not found"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /task/{id}/status [patch]
+func (h *TaskHandler) UpdateTaskStatus(c *gin.Context) {
+	traceID := response.GetTraceID(c)
+	userID := response.GetUserID(c)
+
+	taskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID).WithInstance(c.Request.URL.Path)
+		problem.Send(c)
+		return
+	}
+
+	var req dto.TaskStatusUpdateRequest
+
+	if err := c.ShouldBind(&req); err != nil {
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID).WithInstance(c.Request.URL.Path)
+		problem.Send(c)
+		return
+	}
+
+	updatedTask, err := h.service.ChangeTaskStatus(c.Request.Context(), uint(taskID), req.Status, userID)
+	if err != nil {
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID).WithInstance(c.Request.URL.Path)
+		problem.Send(c)
+		return
+	}
+	c.JSON(http.StatusOK, dto.NewTaskResponse(updatedTask))
+
+}
+
+// DeleteTask godoc
+// @Summary Delete task
+// @Description Delete an existing task by ID. Requires 'task:delete' permission. Only the task creator or users with delete permission can delete tasks
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Task ID"
+// @Success 204 "Successfully deleted task"
+// @Failure 400 {object} response.ProblemDetail "Invalid task ID"
+// @Failure 401 {object} response.ProblemDetail "Unauthorized - invalid or missing token"
+// @Failure 403 {object} response.ProblemDetail "Forbidden - missing permission"
+// @Failure 404 {object} response.ProblemDetail "Task not found"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /task/{id} [delete]
+func (h *TaskHandler) DeleteTask(c *gin.Context) {
+	traceID := response.GetTraceID(c)
+	userID := response.GetUserID(c)
+	taskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID)
+		problem.Send(c)
+		return
+	}
+	if err := h.service.DeleteTask(c.Request.Context(), uint(taskID), userID); err != nil {
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID)
+		problem.Send(c)
+		return
+	}
+	c.Status(http.StatusNoContent)
 }

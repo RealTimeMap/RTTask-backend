@@ -13,6 +13,7 @@ import (
 	"rttask/internal/infrastructure/security"
 	"rttask/internal/infrastructure/storage"
 	"rttask/internal/transport/http/response"
+	"rttask/internal/transport/socket"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -23,11 +24,13 @@ type Container struct {
 	InviteService  *invite.InviteService
 	RoleService    *role.RoleService
 	CompanyService *company.CompanyService
-	TaskService    *task.TaskService
+	TaskService    *task.Service
 
 	JWTManager security.JWTManager
 	Mapper     *response.ErrorMapper
 	Hasher     security.PasswordHasher
+
+	Socket *socket.Server
 
 	UserRepository repository.UserRepository
 	RoleRepository repository.RoleRepository
@@ -58,6 +61,8 @@ func NewContainer(cfg config.Config, db *gorm.DB, logger *zap.Logger) *Container
 	taskService := task.NewTaskService(taskRepo, userRepo, companyRepo, fileService, logger)
 
 	// Сокет
+	socketServer := socket.NewServer(logger, manager, taskService)
+	taskService.SetNotifier(socketServer.TaskNamespace)
 
 	return &Container{
 		AuthService:    authService,
@@ -65,6 +70,8 @@ func NewContainer(cfg config.Config, db *gorm.DB, logger *zap.Logger) *Container
 		RoleService:    roleService,
 		CompanyService: companyService,
 		TaskService:    taskService,
+
+		Socket: socketServer,
 
 		JWTManager: manager,
 		Mapper:     mapper,

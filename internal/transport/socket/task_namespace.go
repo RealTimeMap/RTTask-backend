@@ -2,6 +2,8 @@ package socket
 
 import (
 	"context"
+	"rttask/internal/domain/model"
+	"sync"
 
 	"rttask/internal/domain/service/task"
 	"rttask/internal/infrastructure/security"
@@ -21,12 +23,15 @@ import (
 
 type TaskNamespace struct {
 	nsp         socket.Namespace
-	taskService *task.TaskService
+	taskService *task.Service
 	jwtManager  security.JWTManager
 	logger      *zap.Logger
+
+	userSockets map[uint][]*socket.Socket
+	mu          sync.RWMutex
 }
 
-func NewTaskNamespace(io *socket.Server, taskService *task.TaskService, jwtManager security.JWTManager, logger *zap.Logger) *TaskNamespace {
+func NewTaskNamespace(io *socket.Server, taskService *task.Service, jwtManager security.JWTManager, logger *zap.Logger) *TaskNamespace {
 	nsp := io.Of("/tasks", nil)
 
 	tn := &TaskNamespace{
@@ -34,12 +39,18 @@ func NewTaskNamespace(io *socket.Server, taskService *task.TaskService, jwtManag
 		taskService: taskService,
 		jwtManager:  jwtManager,
 		logger:      logger,
+		userSockets: make(map[uint][]*socket.Socket),
 	}
 
 	tn.setupAuthMiddleware()
 	tn.setupHandlers()
 
 	return tn
+}
+
+// Namespace returns underlying socket.io namespace for advanced usage
+func (tn *TaskNamespace) Namespace() socket.Namespace {
+	return tn.nsp
 }
 
 // setupAuthMiddleware мидлвейр для проврки авторизации внутри сокета
@@ -97,9 +108,17 @@ func (tn *TaskNamespace) authenticateClient(client *socket.Socket) *security.Cla
 func (tn *TaskNamespace) setupHandlers() {
 	tn.nsp.On("connection", func(clients ...any) {
 		client := clients[0].(*socket.Socket)
+		userID := tn.getUserID(client)
+		socketID := string(client.Id())
+
 		tn.logger.Info("Client connected to /tasks namespace",
-			zap.String("socket_id", string(client.Id())),
+			zap.String("socketID", socketID),
+			zap.Uint("userID", userID),
 		)
+
+		tn.mu.Lock()
+		tn.userSockets[userID] = append(tn.userSockets[userID], client)
+		tn.mu.Unlock()
 
 		// Send personal tasks immediately on connection
 		tn.sendPersonalTasks(client)
@@ -109,9 +128,11 @@ func (tn *TaskNamespace) setupHandlers() {
 
 		client.On("disconnect", func(reason ...any) {
 			tn.logger.Info("Client disconnected from /tasks namespace",
-				zap.String("socket_id", string(client.Id())),
+				zap.String("socketID", socketID),
+				zap.Uint("userID", userID),
 				zap.Any("reason", reason),
 			)
+			tn.removeSocket(userID, client)
 		})
 	})
 }
@@ -179,7 +200,40 @@ func (tn *TaskNamespace) registerGetUserTasksHandler(client *socket.Socket) {
 	})
 }
 
-// Namespace returns underlying socket.io namespace for advanced usage
-func (tn *TaskNamespace) Namespace() socket.Namespace {
-	return tn.nsp
+func (tn *TaskNamespace) removeSocket(userID uint, client *socket.Socket) {
+	tn.mu.Lock()
+	defer tn.mu.Unlock()
+
+	sockets := tn.userSockets[userID]
+	for i, s := range sockets {
+		if s.Id() == client.Id() {
+			tn.userSockets[userID] = append(sockets[:i], sockets[i+1:]...)
+			break
+		}
+	}
+	if len(tn.userSockets[userID]) == 0 {
+		delete(tn.userSockets, userID)
+	}
+}
+
+func (tn *TaskNamespace) NotifyNewTask(task *model.Task) {
+	tn.mu.RLock()
+	sockets := tn.userSockets[task.ExecutorID]
+	tn.mu.RUnlock()
+
+	if len(sockets) == 0 {
+		tn.logger.Info("no sockets for executor", zap.Uint("executorID", task.ExecutorID))
+		return
+	}
+
+	tn.logger.Info("notifying executor about new task",
+		zap.Uint("executorID", task.ExecutorID),
+		zap.Int("socketCount", len(sockets)),
+		zap.Uint("taskID", task.ID),
+	)
+
+	for _, s := range sockets {
+		tn.logger.Info("emitting to socket", zap.String("socketID", string(s.Id())))
+		s.Emit("taskNew", dto.NewTaskResponse(task))
+	}
 }

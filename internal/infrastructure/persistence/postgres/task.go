@@ -28,7 +28,8 @@ func (r *PgTaskRepository) Create(ctx context.Context, task *model.Task) (*model
 	if err != nil {
 		return nil, MapGormError(err, "task")
 	}
-	return task, nil
+
+	return r.GetByID(ctx, task.ID)
 }
 
 func (r *PgTaskRepository) GetUserTasks(ctx context.Context, userID uint) (*model.GroupedTasksByStatus, error) {
@@ -97,4 +98,36 @@ func (r *PgTaskRepository) GetTasks(ctx context.Context, params valueobject.Task
 		return nil, 0, MapGormError(err, "task")
 	}
 	return tasks, count, nil
+}
+
+func (r *PgTaskRepository) GetByID(ctx context.Context, id uint) (*model.Task, error) {
+	r.logger.Info("start TaskRepository.GetByID")
+	var task model.Task
+	err := r.db.WithContext(ctx).
+		Preload("Creator").
+		Preload("Executor").
+		Preload("Company").
+		First(&task, id).Error
+	if err != nil {
+		return nil, MapGormError(err, "task")
+	}
+	return &task, nil
+}
+
+func (r *PgTaskRepository) Update(ctx context.Context, task *model.Task) (*model.Task, error) {
+	r.logger.Info("start TaskRepository.Update")
+	err := r.db.WithContext(ctx).Model(&model.Task{}).Where("id = ?", task.ID).Save(task).Error
+	if err != nil {
+		return nil, MapGormError(err, "task")
+	}
+	return r.GetByID(ctx, task.ID)
+}
+
+func (r *PgTaskRepository) Delete(ctx context.Context, id uint) error {
+	r.logger.Info("start TaskRepository.Delete")
+	err := r.db.WithContext(ctx).Model(&model.Task{}).Where("id = ?", id).Delete(&model.Task{}).Error
+	if err != nil {
+		return MapGormError(err, "task")
+	}
+	return nil
 }
