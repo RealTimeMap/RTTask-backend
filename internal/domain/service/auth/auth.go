@@ -27,7 +27,7 @@ func NewTokens(accessToken, refreshToken string) *Tokens {
 	}
 }
 
-type AuthService struct {
+type Service struct {
 	userRepo        repository.UserRepository
 	inviteRepo      repository.InviteRepository
 	fileService     *file.FileService
@@ -47,8 +47,8 @@ func NewAuthService(
 	accessDuration time.Duration,
 	refreshDuration time.Duration,
 	logger *zap.Logger,
-) *AuthService {
-	return &AuthService{
+) *Service {
+	return &Service{
 		userRepo:        userRepo,
 		inviteRepo:      inviteRepo,
 		fileService:     fileService,
@@ -60,7 +60,7 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) Login(ctx context.Context, input LoginInput) (*Tokens, error) {
+func (s *Service) Login(ctx context.Context, input LoginInput) (*Tokens, error) {
 	user, err := s.userRepo.GetUserByEmail(ctx, input.Email.String())
 	if err != nil {
 		// Проверяем тип ошибки
@@ -103,7 +103,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*Tokens, err
 	return tokens, nil
 }
 
-func (s *AuthService) Register(ctx context.Context, input RegisterInput, fileInput *file.FileInput) (*model.User, error) {
+func (s *Service) Register(ctx context.Context, input RegisterInput, fileInput *file.FileInput) (*model.User, error) {
 	if err := s.validateUser(ctx, input.Email.String()); err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput, fileInp
 	return createdUser, nil
 }
 
-func (s *AuthService) generateTokens(user *model.User) (*Tokens, error) {
+func (s *Service) generateTokens(user *model.User) (*Tokens, error) {
 	accessToken, err := s.jwtManager.GenerateToken(user.ID, user.Email, security.AccessToken, s.accessDuration)
 	if err != nil {
 		return nil, err
@@ -166,7 +166,7 @@ func (s *AuthService) generateTokens(user *model.User) (*Tokens, error) {
 	return NewTokens(accessToken, refreshToken), nil
 }
 
-func (s *AuthService) validateInvite(ctx context.Context, inviteLink string) (*model.InviteLink, error) {
+func (s *Service) validateInvite(ctx context.Context, inviteLink string) (*model.InviteLink, error) {
 	invite, err := s.inviteRepo.GetByToken(ctx, inviteLink) // TODO дальше сделать более сложную проверку
 	if err != nil {
 		var notFoundErr *domainerrors.DomainError
@@ -186,7 +186,7 @@ func (s *AuthService) validateInvite(ctx context.Context, inviteLink string) (*m
 	return invite, nil
 }
 
-func (s *AuthService) validateUser(ctx context.Context, email string) error {
+func (s *Service) validateUser(ctx context.Context, email string) error {
 	existingUser, err := s.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
 		var notFoundErr *domainerrors.DomainError
@@ -207,7 +207,7 @@ func (s *AuthService) validateUser(ctx context.Context, email string) error {
 	return nil
 }
 
-func (s *AuthService) hashPassword(password string) (string, error) {
+func (s *Service) hashPassword(password string) (string, error) {
 	hashPassword, err := s.passwordHasher.HashPassword(password)
 	if err != nil {
 		s.logger.Error("failed to hash password",

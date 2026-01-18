@@ -2,24 +2,26 @@ package handlers
 
 import (
 	"net/http"
+	domainerrors "rttask/internal/domain/errors"
 	"rttask/internal/domain/service/invite"
 	"rttask/internal/domain/valueobject"
 	"rttask/internal/infrastructure/security"
 	"rttask/internal/transport/dto"
 	"rttask/internal/transport/http/middleware"
 	"rttask/internal/transport/http/response"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 type InviteHandler struct {
-	service *invite.InviteService
+	service *invite.Service
 	mapper  *response.ErrorMapper
 	logger  *zap.Logger
 }
 
-func InitInviteHandler(g *gin.RouterGroup, service *invite.InviteService, logger *zap.Logger, manager security.JWTManager, mapper *response.ErrorMapper) {
+func InitInviteHandler(g *gin.RouterGroup, service *invite.Service, logger *zap.Logger, manager security.JWTManager, mapper *response.ErrorMapper) {
 	h := &InviteHandler{
 		service: service,
 		mapper:  mapper,
@@ -29,6 +31,7 @@ func InitInviteHandler(g *gin.RouterGroup, service *invite.InviteService, logger
 	{
 		r.POST("/", middleware.AuthMiddleware(manager, logger, mapper), h.CreateInvite)
 		r.GET("/", middleware.AuthMiddleware(manager, logger, mapper), h.GetAll)
+		r.PATCH("/:id", middleware.AuthMiddleware(manager, logger, mapper), h.UpdateInvite)
 	}
 }
 
@@ -107,4 +110,34 @@ func (h *InviteHandler) GetAll(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, dto.NewPaginationResponse(invites, params, 100))
+}
+
+func (h *InviteHandler) UpdateInvite(c *gin.Context) {
+	inviteID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		err = domainerrors.NewValidationError("invalid invite id")
+		problem := h.mapper.MapError(c, err).
+			WithTraceID(response.GetTraceID(c)).WithInstance(c.Request.URL.Path)
+		problem.Send(c)
+		return
+	}
+	userID := response.GetUserID(c)
+	traceID := response.GetTraceID(c)
+
+	var req dto.InviteUpdateRequest
+	if err := c.ShouldBind(&req); err != nil {
+		problem := h.mapper.MapError(c, err).
+			WithTraceID(traceID).WithInstance(c.Request.URL.Path)
+		problem.Send(c)
+		return
+	}
+
+	updatedInvite, err := h.service.UpdateInvite(c.Request.Context(), req.ToInput(), uint(inviteID), userID)
+	if err != nil {
+		problem := h.mapper.MapError(c, err).
+			WithTraceID(traceID).WithInstance(c.Request.URL.Path)
+		problem.Send(c)
+		return
+	}
+	c.JSON(http.StatusOK, dto.NewInviteResponse(updatedInvite))
 }

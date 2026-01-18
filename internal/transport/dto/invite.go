@@ -1,6 +1,9 @@
 package dto
 
-import "rttask/internal/domain/model"
+import (
+	"rttask/internal/domain/model"
+	"rttask/internal/domain/service/invite"
+)
 
 type InviteRequest struct {
 	Description *string `json:"description,omitempty"`
@@ -26,5 +29,19 @@ func NewInviteResponse(invite *model.InviteLink) InviteResponse {
 		Token:       invite.Token,
 		Description: invite.Description,
 		Roles:       roles,
+	}
+}
+
+type InviteUpdateRequest struct {
+	Description    *string `json:"description"`
+	RolesIDs       []uint  `json:"rolesIds"`
+	DeleteRolesIDs []uint  `json:"deleteRolesIds"`
+}
+
+func (i *InviteUpdateRequest) ToInput() invite.UpdateInput {
+	return invite.UpdateInput{
+		Description:    i.Description,
+		RolesIDs:       i.RolesIDs,
+		DeleteRolesIDs: i.DeleteRolesIDs,
 	}
 }

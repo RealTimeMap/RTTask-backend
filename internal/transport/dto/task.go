@@ -3,6 +3,7 @@ package dto
 import (
 	"mime/multipart"
 	"rttask/internal/domain/model"
+	"rttask/internal/domain/service/task"
 	"time"
 )
 
@@ -147,4 +148,29 @@ func NewGroupedTasksByStatusResponse(grouped *model.GroupedTasksByStatus) Groupe
 
 type TaskStatusUpdateRequest struct {
 	Status string `form:"status" json:"status" binding:"required"`
+}
+
+type TaskUpdateRequest struct {
+	Title          *string                 `form:"title"`
+	Description    *string                 `form:"description"`
+	Priority       *uint                   `form:"priority"`
+	ExecutorID     *uint                   `form:"executorId"`
+	CompanyID      *uint                   `form:"companyId"`
+	StartAt        *time.Time              `form:"startAt"`
+	DeadlineAt     *time.Time              `form:"deadlineAt"`
+	DeleteFilesIDs []string                `form:"deleteFilesIds"`
+	Files          []*multipart.FileHeader `form:"files"`
+}
+
+func (r *TaskUpdateRequest) ToUpdateInput() task.UpdateInput {
+	return task.UpdateInput{
+		Title:          r.Title,
+		Description:    r.Description,
+		Priority:       r.Priority,
+		ExecutorID:     r.ExecutorID,
+		CompanyID:      r.CompanyID,
+		StartAt:        r.StartAt,
+		DeadlineAt:     r.DeadlineAt,
+		DeleteFilesIDs: r.DeleteFilesIDs,
+	}
 }

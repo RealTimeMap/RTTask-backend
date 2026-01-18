@@ -759,6 +759,125 @@
                         }
                     }
                 }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing task. Supports partial updates - only provided fields will be changed. Files can be added via 'files' field and removed via 'deleteFilesIds' field.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Update task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Task title",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Task description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Task priority (1-5)",
+                        "name": "priority",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Executor user ID",
+                        "name": "executorId",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Start date",
+                        "name": "startAt",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Deadline date",
+                        "name": "deadlineAt",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "New files to attach",
+                        "name": "files",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "IDs of files to delete",
+                        "name": "deleteFilesIds",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully updated task",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TaskResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - missing permission",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "404": {
+                        "description": "Task not found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    }
+                }
             }
         },
         "/task/{id}/status": {

@@ -10,6 +10,7 @@ import (
 	"rttask/internal/domain/repository"
 	"rttask/internal/domain/service/file"
 	"rttask/internal/domain/valueobject"
+	"slices"
 	"time"
 
 	"go.uber.org/zap"
@@ -40,7 +41,7 @@ func (s *Service) SetNotifier(notifier model.TaskNotifier) {
 	s.notifier = notifier
 }
 
-func (s *Service) CreateTask(ctx context.Context, input TaskInput, filesInput []file.FileInput, userID uint) (*model.Task, error) {
+func (s *Service) CreateTask(ctx context.Context, input CreateInput, filesInput []file.FileInput, userID uint) (*model.Task, error) {
 	// Валидация пользователя кем поставлена задача
 	if err := s.validateUser(ctx, userID, rbac.TaskCreate, rbac.TaskAssign); err != nil {
 		s.logger.Error("failed to validate user", zap.Error(err))
@@ -79,7 +80,7 @@ func (s *Service) CreateTask(ctx context.Context, input TaskInput, filesInput []
 
 	if len(filesInput) > 0 {
 		for _, fileInput := range filesInput {
-			uploadedFile, err := s.fileService.UploadFile(ctx, fileInput, file.TaskProfile) // нужно создать
+			uploadedFile, err := s.fileService.UploadFile(ctx, fileInput, file.TaskProfile)
 			if err != nil {
 				return nil, err
 			}
@@ -98,6 +99,7 @@ func (s *Service) CreateTask(ctx context.Context, input TaskInput, filesInput []
 	return newTask, nil
 }
 
+// GetTasks Получение задач с пагинацией и фильтрами
 func (s *Service) GetTasks(ctx context.Context, params valueobject.TaskFilterList, userID uint) ([]*model.Task, int64, error) {
 	if err := s.validateUser(ctx, userID, rbac.TaskView, rbac.TaskList); err != nil {
 		return nil, 0, err
@@ -115,6 +117,7 @@ func (s *Service) GetTasks(ctx context.Context, params valueobject.TaskFilterLis
 
 }
 
+// GetUserTasks получение пользовательских задач в группированом ввиде
 func (s *Service) GetUserTasks(ctx context.Context, userID uint) (*model.GroupedTasksByStatus, error) {
 	if err := s.validateUser(ctx, userID, rbac.TaskView, rbac.TaskList); err != nil {
 		return nil, err
@@ -128,6 +131,7 @@ func (s *Service) GetUserTasks(ctx context.Context, userID uint) (*model.Grouped
 	return tasks, nil
 }
 
+// ChangeTaskStatus изменение статуса задачи
 func (s *Service) ChangeTaskStatus(ctx context.Context, taskID uint, status string, userID uint) (*model.Task, error) {
 	if err := s.validateUser(ctx, userID, rbac.TaskChangeStatus); err != nil {
 		return nil, err
@@ -157,6 +161,7 @@ func (s *Service) ChangeTaskStatus(ctx context.Context, taskID uint, status stri
 
 }
 
+// DeleteTask Удаление задачи
 func (s *Service) DeleteTask(ctx context.Context, taskID, userID uint) error {
 	if err := s.validateUser(ctx, userID, rbac.TaskDelete); err != nil {
 		return err
@@ -169,6 +174,52 @@ func (s *Service) DeleteTask(ctx context.Context, taskID, userID uint) error {
 		return err
 	}
 	return nil
+}
+
+// UpdateTask обновление задачи
+func (s *Service) UpdateTask(ctx context.Context, input UpdateInput, filesInput []file.FileInput, taskID, userID uint) (*model.Task, error) {
+	if err := s.validateUser(ctx, userID, rbac.TaskUpdate); err != nil {
+		return nil, err
+	}
+
+	task, err := s.taskRepo.GetByID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Применяем изменения полей
+	input.ApplyTo(task)
+
+	// Удаляем файлы
+	if len(input.DeleteFilesIDs) > 0 {
+		task.Files = s.removeFiles(ctx, task.Files, input.DeleteFilesIDs)
+	}
+
+	// Добавляем новые файлы
+	for _, fileInput := range filesInput {
+		uploadedFile, err := s.fileService.UploadFile(ctx, fileInput, file.TaskProfile)
+		if err != nil {
+			return nil, err
+		}
+		task.Files = append(task.Files, uploadedFile)
+	}
+
+	return s.taskRepo.Update(ctx, task)
+}
+
+func (s *Service) removeFiles(ctx context.Context, files []*model.File, deleteIDs []string) []*model.File {
+	result := make([]*model.File, 0, len(files))
+	for _, f := range files {
+		if slices.Contains(deleteIDs, f.ID) {
+			// Удаляем файл
+			if err := s.fileService.DeleteFile(ctx, f.Path); err != nil {
+				s.logger.Error("failed to delete file", zap.String("path", f.Path), zap.Error(err))
+			}
+			continue
+		}
+		result = append(result, f)
+	}
+	return result
 }
 
 func (s *Service) validateUser(ctx context.Context, userID uint, permissions ...rbac.Permission) error {
@@ -243,4 +294,11 @@ func (s *Service) validateTimeRange(startAt time.Time, deadlineAt time.Time) err
 
 	return nil
 
+}
+
+func (s *Service) validatePriority(value uint) error {
+	if value > 5 || value == 0 {
+		return domainerrors.NewValidationError("priority must be between 0 and 5")
+	}
+	return nil
 }

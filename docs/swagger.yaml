@@ -681,6 +681,87 @@ paths:
       summary: Delete task
       tags:
       - tasks
+    patch:
+      consumes:
+      - multipart/form-data
+      description: Update an existing task. Supports partial updates - only provided
+        fields will be changed. Files can be added via 'files' field and removed via
+        'deleteFilesIds' field.
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task title
+        in: formData
+        name: title
+        type: string
+      - description: Task description
+        in: formData
+        name: description
+        type: string
+      - description: Task priority (1-5)
+        in: formData
+        name: priority
+        type: integer
+      - description: Executor user ID
+        in: formData
+        name: executorId
+        type: integer
+      - description: Start date
+        format: date-time
+        in: formData
+        name: startAt
+        type: string
+      - description: Deadline date
+        format: date-time
+        in: formData
+        name: deadlineAt
+        type: string
+      - description: New files to attach
+        in: formData
+        name: files
+        type: file
+      - collectionFormat: csv
+        description: IDs of files to delete
+        in: formData
+        items:
+          type: string
+        name: deleteFilesIds
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully updated task
+          schema:
+            $ref: '#/definitions/dto.TaskResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "403":
+          description: Forbidden - missing permission
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Update task
+      tags:
+      - tasks
   /task/{id}/status:
     patch:
       consumes:

@@ -9,5 +9,7 @@ import (
 type InviteRepository interface {
 	Create(ctx context.Context, invite *model.InviteLink) (*model.InviteLink, error)
 	GetByToken(ctx context.Context, token string) (*model.InviteLink, error)
+	GetByID(ctx context.Context, id uint) (*model.InviteLink, error)
 	GetAll(ctx context.Context, userID uint, params valueobject.PaginationParams) ([]*model.InviteLink, error)
+	Update(ctx context.Context, invite *model.InviteLink) (*model.InviteLink, error)
 }

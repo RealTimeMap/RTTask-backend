@@ -15,7 +15,7 @@ import (
 
 type AuthHandler struct {
 	manager     security.JWTManager
-	authService *auth.AuthService
+	authService *auth.Service
 	logger      *zap.Logger
 	mapper      *response.ErrorMapper
 }
@@ -25,7 +25,7 @@ type credentials struct {
 	Password valueobject.Password
 }
 
-func InitAuthHandler(g *gin.RouterGroup, manager security.JWTManager, authService *auth.AuthService) {
+func InitAuthHandler(g *gin.RouterGroup, manager security.JWTManager, authService *auth.Service) {
 	authHandler := &AuthHandler{manager: manager, authService: authService}
 	r := g.Group("/auth")
 	{

@@ -20,8 +20,8 @@ import (
 )
 
 type Container struct {
-	AuthService    *auth.AuthService
-	InviteService  *invite.InviteService
+	AuthService    *auth.Service
+	InviteService  *invite.Service
 	RoleService    *role.RoleService
 	CompanyService *company.CompanyService
 	TaskService    *task.Service

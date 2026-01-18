@@ -8,19 +8,20 @@ import (
 	"rttask/internal/domain/model/rbac"
 	"rttask/internal/domain/repository"
 	"rttask/internal/domain/valueobject"
+	"slices"
 
 	"go.uber.org/zap"
 )
 
-type InviteService struct {
+type Service struct {
 	inviteRepo repository.InviteRepository
 	userRepo   repository.UserRepository
 	roleRepo   repository.RoleRepository
 	logger     *zap.Logger
 }
 
-func NewInviteService(inviteRepo repository.InviteRepository, userRepo repository.UserRepository, roleRepo repository.RoleRepository, logger *zap.Logger) *InviteService {
-	return &InviteService{
+func NewInviteService(inviteRepo repository.InviteRepository, userRepo repository.UserRepository, roleRepo repository.RoleRepository, logger *zap.Logger) *Service {
+	return &Service{
 		inviteRepo: inviteRepo,
 		userRepo:   userRepo,
 		roleRepo:   roleRepo,
@@ -29,7 +30,7 @@ func NewInviteService(inviteRepo repository.InviteRepository, userRepo repositor
 }
 
 // CreateInvite Создание инвайт ссылки
-func (s *InviteService) CreateInvite(ctx context.Context, input InviteInput, userID uint) (*model.InviteLink, error) {
+func (s *Service) CreateInvite(ctx context.Context, input Input, userID uint) (*model.InviteLink, error) {
 	s.logger.Info("start InviteService.CreateInvite", zap.Any("input", input))
 
 	// Проверка пользоваеля
@@ -55,7 +56,7 @@ func (s *InviteService) CreateInvite(ctx context.Context, input InviteInput, use
 }
 
 // GetAllInvites Получение инвайт ссылок с пагинацией
-func (s *InviteService) GetAllInvites(ctx context.Context, userID uint, params valueobject.PaginationParams) ([]*model.InviteLink, error) {
+func (s *Service) GetAllInvites(ctx context.Context, userID uint, params valueobject.PaginationParams) ([]*model.InviteLink, error) {
 	user, err := s.userRepo.GetUserByIDWithRoles(ctx, userID)
 	if err != nil {
 		return nil, domainerrors.NewUnauthorizedError("Not authorized")
@@ -72,7 +73,50 @@ func (s *InviteService) GetAllInvites(ctx context.Context, userID uint, params v
 	return invites, nil
 }
 
-func (s *InviteService) validateUser(ctx context.Context, userID uint, permission rbac.Permission) error {
+func (s *Service) UpdateInvite(ctx context.Context, input UpdateInput, inviteID, userID uint) (*model.InviteLink, error) {
+	s.logger.Info("start InviteService.UpdateInvite", zap.Any("input", input))
+
+	if err := s.validateUser(ctx, userID, rbac.RoleUpdate); err != nil {
+		return nil, err
+	}
+
+	invite, err := s.inviteRepo.GetByID(ctx, inviteID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Применяем изменения полей
+	input.ApplyTo(invite)
+
+	// Удаляем роли
+	if len(input.DeleteRolesIDs) > 0 {
+		invite.Roles = s.removeRoles(invite.Roles, input.DeleteRolesIDs)
+	}
+
+	// Добавляем новые роли
+	if len(input.RolesIDs) > 0 {
+		newRoles, err := s.roleRepo.GetByIDs(ctx, input.RolesIDs)
+		if err != nil {
+			return nil, err
+		}
+		invite.Roles = append(invite.Roles, newRoles...)
+	}
+
+	return s.inviteRepo.Update(ctx, invite)
+}
+
+func (s *Service) removeRoles(roles []rbac.Role, deleteIDs []uint) []rbac.Role {
+	result := make([]rbac.Role, 0, len(roles))
+	for _, role := range roles {
+		if slices.Contains(deleteIDs, role.ID) {
+			continue
+		}
+		result = append(result, role)
+	}
+	return result
+}
+
+func (s *Service) validateUser(ctx context.Context, userID uint, permission rbac.Permission) error {
 	user, err := s.userRepo.GetUserByIDWithRoles(ctx, userID)
 	if err != nil {
 		return domainerrors.NewUnauthorizedError("Not authorized")
@@ -84,7 +128,7 @@ func (s *InviteService) validateUser(ctx context.Context, userID uint, permissio
 	return nil
 }
 
-func (s *InviteService) validateRoles(ctx context.Context, input InviteInput) ([]rbac.Role, error) {
+func (s *Service) validateRoles(ctx context.Context, input Input) ([]rbac.Role, error) {
 	if len(input.RolesIDs) > 0 {
 		roles, err := s.roleRepo.GetByIDs(ctx, input.RolesIDs)
 		if err != nil {

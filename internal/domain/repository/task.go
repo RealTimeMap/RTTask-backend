@@ -13,4 +13,5 @@ type TaskRepository interface {
 	GetByID(ctx context.Context, id uint) (*model.Task, error)
 	Update(ctx context.Context, task *model.Task) (*model.Task, error)
 	Delete(ctx context.Context, id uint) error
+	ParticipantUpdate(ctx context.Context, data map[string]interface{}, id uint) (*model.Task, error)
 }

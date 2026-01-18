@@ -38,3 +38,9 @@ func (s *LocalStorage) Save(_ context.Context, file io.Reader, path string) erro
 	}
 	return nil
 }
+
+func (s *LocalStorage) Delete(ctx context.Context, path string) error {
+	fullPath := filepath.Join(s.basePath, path)
+
+	return os.Remove(fullPath)
+}

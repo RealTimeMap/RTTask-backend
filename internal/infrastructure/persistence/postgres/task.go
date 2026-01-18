@@ -131,3 +131,12 @@ func (r *PgTaskRepository) Delete(ctx context.Context, id uint) error {
 	}
 	return nil
 }
+
+func (r *PgTaskRepository) ParticipantUpdate(ctx context.Context, data map[string]interface{}, id uint) (*model.Task, error) {
+	r.logger.Info("start TaskRepository.ParticipantUpdate")
+	err := r.db.WithContext(ctx).Model(&model.Task{}).Where("id = ?", id).Updates(data).Error
+	if err != nil {
+		return nil, MapGormError(err, "task")
+	}
+	return r.GetByID(ctx, id)
+}

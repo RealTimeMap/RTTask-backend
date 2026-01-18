@@ -62,7 +62,15 @@ func (s *FileService) UploadFile(ctx context.Context, input FileInput, profile V
 	return newFile, nil
 }
 
-func (s *FileService) generateFilePath(entityType string, fileID string, fileName string) string {
+func (s *FileService) DeleteFile(ctx context.Context, path string) error {
+	s.logger.Info("FileService.DeleteFile", zap.String("path", path))
+	if err := s.storage.Delete(ctx, path); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *FileService) generateFilePath(entityType, fileID, fileName string) string {
 	now := time.Now()
 	ext := filepath.Ext(fileName)
 

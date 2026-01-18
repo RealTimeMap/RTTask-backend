@@ -5,7 +5,7 @@ import "rttask/internal/domain/model/rbac"
 // DefaultRoles содержит определения стандартных системных ролей
 var DefaultRoles = []rbac.Role{
 	{
-		Name:     "admin",
+		Name:     "Админ",
 		IsSystem: true,
 		IsActive: true,
 		Permissions: []rbac.Permission{
@@ -46,7 +46,7 @@ var DefaultRoles = []rbac.Role{
 		},
 	},
 	{
-		Name:     "manager",
+		Name:     "Менеджер",
 		IsSystem: true,
 		IsActive: true,
 		Permissions: []rbac.Permission{
@@ -87,51 +87,9 @@ var DefaultRoles = []rbac.Role{
 		},
 	},
 	{
-		Name:     "user",
-		IsSystem: true,
-		IsActive: true,
-		Permissions: []rbac.Permission{
-			// Работа с задачами
-			rbac.TaskCreate,
-			rbac.TaskUpdate,
-			rbac.TaskView,
-			rbac.TaskList,
-			rbac.TaskChangeStatus,
-
-			// Просмотр пользователей
-			rbac.UserView,
-			rbac.UserList,
-
-			// Просмотр компаний
-			rbac.CompanyView,
-			rbac.CompanyList,
-
-			// Работа с комментариями
-			rbac.CommentCreate,
-			rbac.CommentView,
-			rbac.CommentUpdate,
-			rbac.CommentDelete,
-		},
-	},
-	{
-		Name:     "viewer",
-		IsSystem: true,
-		IsActive: true,
-		Permissions: []rbac.Permission{
-			// Только просмотр задач
-			rbac.TaskView,
-			rbac.TaskList,
-
-			// Просмотр пользователей
-			rbac.UserView,
-			rbac.UserList,
-
-			// Просмотр компаний
-			rbac.CompanyView,
-			rbac.CompanyList,
-
-			// Просмотр комментариев
-			rbac.CommentView,
-		},
+		Name:        "Сотрудник",
+		IsSystem:    true,
+		IsActive:    true,
+		Permissions: []rbac.Permission{},
 	},
 }

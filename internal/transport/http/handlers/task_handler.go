@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"rttask/internal/domain/errors"
 	"rttask/internal/domain/service/file"
 	"rttask/internal/domain/service/task"
 	"rttask/internal/domain/valueobject"
@@ -34,6 +35,7 @@ func InitTaskHandler(g *gin.RouterGroup, service *task.Service, logger *zap.Logg
 		r.GET("/my", middleware.AuthMiddleware(manager, logger, mapper), h.GetUserTasks)
 		r.PATCH("/:id/status", middleware.AuthMiddleware(manager, logger, mapper), h.UpdateTaskStatus)
 		r.DELETE("/:id", middleware.AuthMiddleware(manager, logger, mapper), h.DeleteTask)
+		r.PATCH("/:id", middleware.AuthMiddleware(manager, logger, mapper), h.UpdateTask)
 	}
 }
 
@@ -89,7 +91,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		}()
 	}
 
-	rawData := task.TaskInput{
+	rawData := task.CreateInput{
 		Title:       req.Title,
 		Description: req.Description,
 		CompanyID:   req.CompanyID,
@@ -244,7 +246,7 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 	userID := response.GetUserID(c)
 	taskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		problem := h.mapper.MapError(c, err).WithTraceID(traceID)
+		problem := h.mapper.MapError(c, errors.NewValidationError("task id should be an integer")).WithTraceID(traceID)
 		problem.Send(c)
 		return
 	}
@@ -254,4 +256,75 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// UpdateTask godoc
+// @Summary Update task
+// @Description Update an existing task. Supports partial updates - only provided fields will be changed. Files can be added via 'files' field and removed via 'deleteFilesIds' field.
+// @Tags tasks
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Task ID"
+// @Param title formData string false "Task title"
+// @Param description formData string false "Task description"
+// @Param priority formData int false "Task priority (1-5)"
+// @Param executorId formData int false "Executor user ID"
+// @Param startAt formData string false "Start date" format(date-time)
+// @Param deadlineAt formData string false "Deadline date" format(date-time)
+// @Param files formData file false "New files to attach"
+// @Param deleteFilesIds formData []string false "IDs of files to delete"
+// @Success 200 {object} dto.TaskResponse "Successfully updated task"
+// @Failure 400 {object} response.ProblemDetail "Invalid request body"
+// @Failure 401 {object} response.ProblemDetail "Unauthorized - invalid or missing token"
+// @Failure 403 {object} response.ProblemDetail "Forbidden - missing permission"
+// @Failure 404 {object} response.ProblemDetail "Task not found"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /task/{id} [patch]
+func (h *TaskHandler) UpdateTask(c *gin.Context) {
+	traceID := response.GetTraceID(c)
+	userID := response.GetUserID(c)
+	taskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+
+	if err != nil {
+		problem := h.mapper.MapError(c, errors.NewValidationError("task id should be an integer")).WithTraceID(traceID)
+		problem.Send(c)
+		return
+	}
+
+	var req dto.TaskUpdateRequest
+	if err := c.ShouldBind(&req); err != nil {
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID)
+		problem.Send(c)
+		return
+	}
+
+	var fileInputs []file.FileInput
+	if len(req.Files) > 0 {
+		fileInputs = make([]file.FileInput, 0, len(req.Files))
+		for _, fileHeader := range req.Files {
+			input, err := file.NewFileInput(fileHeader, "task", userID)
+			if err != nil {
+				h.logger.Error("failed to create file input", zap.Error(err))
+				problem := h.mapper.MapError(c, err).WithTraceID(traceID)
+				problem.Send(c)
+				return
+			}
+			fileInputs = append(fileInputs, input)
+		}
+		defer func() {
+			for _, input := range fileInputs {
+				_ = input.File.Close()
+			}
+		}()
+	}
+
+	updatedTask, err := h.service.UpdateTask(c.Request.Context(), req.ToUpdateInput(), fileInputs, uint(taskID), userID)
+	if err != nil {
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID)
+		problem.Send(c)
+		return
+	}
+	c.JSON(http.StatusOK, dto.NewTaskResponse(updatedTask))
+
 }

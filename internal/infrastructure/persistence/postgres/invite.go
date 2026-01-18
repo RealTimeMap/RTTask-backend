@@ -46,6 +46,7 @@ func (r *PgInviteRepository) GetAll(ctx context.Context, userID uint, params val
 	var invites []*model.InviteLink
 	err := r.db.WithContext(ctx).
 		Preload("User").
+		Preload("Roles").
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
 		Offset(params.Offset).
@@ -55,4 +56,32 @@ func (r *PgInviteRepository) GetAll(ctx context.Context, userID uint, params val
 		return nil, MapGormError(err, "invite")
 	}
 	return invites, nil
+}
+
+func (r *PgInviteRepository) GetByID(ctx context.Context, inviteID uint) (*model.InviteLink, error) {
+	r.logger.Info("start inviteRepository.GetByID")
+	var invite *model.InviteLink
+	err := r.db.WithContext(ctx).Model(&model.InviteLink{}).Preload("Roles").First(&invite, inviteID).Error
+	if err != nil {
+		return nil, MapGormError(err, "invite")
+	}
+	return invite, nil
+}
+
+func (r *PgInviteRepository) Update(ctx context.Context, invite *model.InviteLink) (*model.InviteLink, error) {
+	r.logger.Info("start inviteRepository.Update")
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(invite).Association("Roles").Replace(invite.Roles); err != nil {
+			return err
+		}
+		if err := tx.Save(invite).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		r.logger.Error("Update invite link", zap.Error(err))
+		return nil, MapGormError(err, "invite")
+	}
+	return invite, nil
 }
