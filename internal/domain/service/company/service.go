@@ -29,14 +29,14 @@ func NewCompanyService(companyRepo repository.CompanyRepository, userRepo reposi
 	}
 }
 
-func (s *CompanyService) CreateCompany(ctx context.Context, input CompanyInput, fileInput file.FileInput, userID uint) (*model.Company, error) {
+func (s *CompanyService) CreateCompany(ctx context.Context, input Input, fileInput file.FileInput, userID uint) (*model.Company, error) {
 	s.logger.Info("start CompanyService.CreateCompany")
 
 	if err := s.validateUser(ctx, userID, rbac.CompanyCreate); err != nil {
 		return nil, err
 	}
 
-	if err := s.validateCompanyUnique(ctx, input); err != nil {
+	if err := s.validateCompanyUnique(ctx, input.Name); err != nil {
 		return nil, err
 	}
 	logo, err := s.fileService.UploadFile(ctx, fileInput, file.CompanyProfile)
@@ -68,8 +68,8 @@ func (s *CompanyService) GetAll(ctx context.Context, params valueobject.Paginati
 	return companies, count, nil
 }
 
-func (s *CompanyService) validateCompanyUnique(ctx context.Context, input CompanyInput) error {
-	existCompany, err := s.companyRepo.GetByName(ctx, input.Name)
+func (s *CompanyService) validateCompanyUnique(ctx context.Context, name string) error {
+	existCompany, err := s.companyRepo.GetByName(ctx, name)
 	if err != nil {
 		var notFoundErr *domainerrors.DomainError
 		if errors.As(err, &notFoundErr) || notFoundErr.Type != domainerrors.ErrorTypeNotFound {
@@ -92,4 +92,43 @@ func (s *CompanyService) validateUser(ctx context.Context, userID uint, permissi
 		return domainerrors.NewForbiddenError("dont have permission")
 	}
 	return nil
+}
+
+func (s *CompanyService) UpdateCompany(ctx context.Context, input UpdateInput, fileInput *file.FileInput, companyID, userID uint) (*model.Company, error) {
+	if err := s.validateUser(ctx, userID, rbac.CompanyUpdate); err != nil {
+		return nil, err
+	}
+
+	company, err := s.companyRepo.GetByID(ctx, companyID)
+	if err != nil {
+		return nil, err
+	}
+
+	if input.Name != nil {
+		if err := s.validateCompanyUnique(ctx, *input.Name); err != nil {
+			return nil, err
+		}
+	}
+
+	input.ApplyTo(company)
+
+	if fileInput != nil {
+		if company.Avatar != nil {
+			if err := s.fileService.DeleteFile(ctx, company.Avatar.Path); err != nil {
+				s.logger.Warn("failed to delete file", zap.Error(err), zap.String("Path", company.Avatar.Path))
+			}
+		}
+		newFile, err := s.fileService.UploadFile(ctx, *fileInput, file.CompanyProfile)
+		if err != nil {
+			s.logger.Warn("failed to upload file", zap.Error(err))
+			return nil, err
+		}
+		company.Avatar = newFile
+	}
+
+	updatedCompany, err := s.companyRepo.Update(ctx, company, companyID)
+	if err != nil {
+		return nil, err
+	}
+	return updatedCompany, nil
 }

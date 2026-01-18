@@ -39,6 +39,7 @@ func (r *PgCompanyRepository) GetByName(ctx context.Context, name string) (*mode
 	}
 	return company, nil
 }
+
 func (r *PgCompanyRepository) GetAll(ctx context.Context, params valueobject.PaginationParams) ([]*model.Company, int64, error) {
 	r.logger.Info("start CompanyRepository.GetAll")
 	var companies []*model.Company
@@ -58,4 +59,13 @@ func (r *PgCompanyRepository) GetByID(ctx context.Context, id uint) (*model.Comp
 		return nil, MapGormError(err, "company")
 	}
 	return &company, nil
+}
+
+func (r *PgCompanyRepository) Update(ctx context.Context, company *model.Company, companyID uint) (*model.Company, error) {
+	r.logger.Info("start CompanyRepository.Update")
+	err := r.db.WithContext(ctx).Where("id = ?", companyID).Save(company).Error
+	if err != nil {
+		return nil, MapGormError(err, "company")
+	}
+	return company, nil
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"rttask/internal/domain/errors"
 	"rttask/internal/domain/service/company"
 	"rttask/internal/domain/service/file"
 	"rttask/internal/domain/valueobject"
@@ -9,6 +10,7 @@ import (
 	"rttask/internal/transport/dto"
 	"rttask/internal/transport/http/middleware"
 	"rttask/internal/transport/http/response"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -30,6 +32,7 @@ func InitCompanyHandler(g *gin.RouterGroup, service *company.CompanyService, log
 	{
 		r.POST("/", middleware.AuthMiddleware(manager, logger, mapper), h.CreateCompany)
 		r.GET("/", middleware.AuthMiddleware(manager, logger, mapper), h.GetCompanies)
+		r.PATCH("/:id", middleware.AuthMiddleware(manager, logger, mapper), h.UpdateCompany)
 	}
 }
 
@@ -68,7 +71,7 @@ func (h *CompanyHandler) CreateCompany(c *gin.Context) {
 	}
 	defer fileInput.File.Close()
 
-	companyInput := company.CompanyInput{
+	companyInput := company.Input{
 		Name:        req.Name,
 		Description: req.Description,
 	}
@@ -121,4 +124,45 @@ func (h *CompanyHandler) GetCompanies(c *gin.Context) {
 	companiesResponse := dto.NewMultiplyCompanyResponse(companies)
 
 	c.JSON(http.StatusOK, dto.NewPaginationResponse(companiesResponse, params, count))
+}
+
+func (h *CompanyHandler) UpdateCompany(c *gin.Context) {
+	userID := response.GetUserID(c)
+	traceID := response.GetTraceID(c)
+	companyID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		err = errors.NewValidationError("invalid company ID")
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID)
+		problem.Send(c)
+		return
+	}
+
+	var req dto.CompanyUpdateRequest
+
+	if err := c.ShouldBind(&req); err != nil {
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID)
+		problem.Send(c)
+		return
+	}
+
+	var fileInput *file.FileInput
+	if req.Logo != nil {
+		input, err := file.NewFileInput(req.Logo, "company", userID)
+		if err != nil {
+			h.logger.Error("failed to create file input", zap.Error(err))
+			problem := h.mapper.MapError(c, err).WithTraceID(traceID)
+			problem.Send(c)
+			return
+		}
+		fileInput = &input
+		defer fileInput.File.Close()
+	}
+
+	updatedCompany, err := h.service.UpdateCompany(c.Request.Context(), req.ToInput(), fileInput, uint(companyID), userID)
+	if err != nil {
+		problem := h.mapper.MapError(c, err).WithTraceID(traceID)
+		problem.Send(c)
+		return
+	}
+	c.JSON(http.StatusOK, dto.NewCompanyResponse(updatedCompany))
 }

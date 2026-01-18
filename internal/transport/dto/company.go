@@ -3,12 +3,13 @@ package dto
 import (
 	"mime/multipart"
 	"rttask/internal/domain/model"
+	"rttask/internal/domain/service/company"
 )
 
 type CompanyRequest struct {
 	Name        string                `form:"name" binding:"required"`
 	Description string                `form:"description" binding:"required"`
-	Avatar      *multipart.FileHeader `form:"avatar" binding:"required"`
+	Avatar      *multipart.FileHeader `form:"logo" binding:"required"`
 }
 
 type CompanyResponse struct {
@@ -33,4 +34,17 @@ func NewMultiplyCompanyResponse(companies []*model.Company) []CompanyResponse {
 		response = append(response, NewCompanyResponse(company))
 	}
 	return response
+}
+
+type CompanyUpdateRequest struct {
+	Name        *string               `form:"name"`
+	Description *string               `form:"description"`
+	Logo        *multipart.FileHeader `form:"logo"`
+}
+
+func (r *CompanyUpdateRequest) ToInput() company.UpdateInput {
+	return company.UpdateInput{
+		Name:        r.Name,
+		Description: r.Description,
+	}
 }

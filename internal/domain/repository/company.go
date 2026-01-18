@@ -11,4 +11,5 @@ type CompanyRepository interface {
 	GetByName(ctx context.Context, name string) (*model.Company, error)
 	GetAll(ctx context.Context, params valueobject.PaginationParams) ([]*model.Company, int64, error)
 	GetByID(ctx context.Context, id uint) (*model.Company, error)
+	Update(ctx context.Context, company *model.Company, companyID uint) (*model.Company, error)
 }
