@@ -30,8 +30,8 @@ func NewCompanyResponse(company *model.Company) CompanyResponse {
 
 func NewMultiplyCompanyResponse(companies []*model.Company) []CompanyResponse {
 	response := make([]CompanyResponse, 0, len(companies))
-	for _, company := range companies {
-		response = append(response, NewCompanyResponse(company))
+	for _, c := range companies {
+		response = append(response, NewCompanyResponse(c))
 	}
 	return response
 }

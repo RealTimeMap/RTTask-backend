@@ -12,15 +12,15 @@ type RoleRequest struct {
 // RESPONSE
 
 type RoleResponse struct {
-	ID          uint     `json:"id"`
-	Name        string   `json:"name"`
-	Permissions []string `json:"permissions"`
+	ID          uint                  `json:"id"`
+	Name        string                `json:"name"`
+	Permissions []rbac.PermissionInfo `json:"permissions"`
 }
 
 func NewRoleResponse(role *rbac.Role) RoleResponse {
-	var permissions []string
+	var permissions []rbac.PermissionInfo
 	for _, permission := range role.Permissions {
-		permissions = append(permissions, string(permission))
+		permissions = append(permissions, rbac.PermissionsRegister[permission])
 	}
 	return RoleResponse{
 		ID:          role.ID,

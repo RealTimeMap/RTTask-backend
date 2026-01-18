@@ -8,9 +8,9 @@ import (
 type Permission string
 
 type PermissionInfo struct {
-	Name        string
-	Description string
-	Group       string
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Group       string `json:"-"`
 }
 
 const (
