@@ -112,6 +112,21 @@ func (h *InviteHandler) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.NewPaginationResponse(invites, params, 100))
 }
 
+// UpdateInvite godoc
+// @Summary Update invite link
+// @Description Update an existing invite link. Allows modifying description and associated roles.
+// @Tags invite
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Invite ID"
+// @Param request body dto.InviteUpdateRequest true "Invite update data"
+// @Success 200 {object} dto.InviteResponse "Successfully updated invite link"
+// @Failure 400 {object} response.ProblemDetail "Invalid request body or invite ID"
+// @Failure 401 {object} response.ProblemDetail "Unauthorized - invalid or missing token"
+// @Failure 404 {object} response.ProblemDetail "Invite not found"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /invite/{id} [patch]
 func (h *InviteHandler) UpdateInvite(c *gin.Context) {
 	inviteID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {

@@ -1,6 +1,14 @@
 package scripts
 
-import "rttask/internal/domain/model/rbac"
+import (
+	"context"
+	"errors"
+	domainerrors "rttask/internal/domain/errors"
+	"rttask/internal/domain/model/rbac"
+	"rttask/internal/domain/repository"
+
+	"go.uber.org/zap"
+)
 
 // DefaultRoles содержит определения стандартных системных ролей
 var DefaultRoles = []rbac.Role{
@@ -12,35 +20,26 @@ var DefaultRoles = []rbac.Role{
 			// Все права - администратор имеет полный доступ
 			rbac.InviteCreate,
 			rbac.InviteDelete,
-			rbac.InviteList,
 
 			rbac.TaskCreate,
 			rbac.TaskDelete,
 			rbac.TaskUpdate,
-			rbac.TaskView,
-			rbac.TaskList,
 			rbac.TaskAssign,
 			rbac.TaskChangeStatus,
 
 			rbac.RoleCreate,
 			rbac.RoleUpdate,
 			rbac.RoleDelete,
-			rbac.RoleList,
 			rbac.RoleAssign,
 
-			rbac.UserView,
-			rbac.UserList,
 			rbac.UserUpdate,
 			rbac.UserDelete,
 
 			rbac.CompanyCreate,
 			rbac.CompanyUpdate,
 			rbac.CompanyDelete,
-			rbac.CompanyView,
-			rbac.CompanyList,
 
 			rbac.CommentCreate,
-			rbac.CommentView,
 			rbac.CommentUpdate,
 			rbac.CommentDelete,
 		},
@@ -53,35 +52,21 @@ var DefaultRoles = []rbac.Role{
 			// Управление инвайтами
 			rbac.InviteCreate,
 			rbac.InviteDelete,
-			rbac.InviteList,
 
 			// Полное управление задачами
 			rbac.TaskCreate,
 			rbac.TaskDelete,
 			rbac.TaskUpdate,
-			rbac.TaskView,
-			rbac.TaskList,
 			rbac.TaskAssign,
 			rbac.TaskChangeStatus,
-
-			// Просмотр ролей
-			rbac.RoleList,
-
-			// Просмотр и частичное управление пользователями
-			rbac.UserView,
-			rbac.UserList,
-			rbac.UserUpdate,
 
 			// Управление компаниями
 			rbac.CompanyCreate,
 			rbac.CompanyUpdate,
 			rbac.CompanyDelete,
-			rbac.CompanyView,
-			rbac.CompanyList,
 
 			// Управление комментариями
 			rbac.CommentCreate,
-			rbac.CommentView,
 			rbac.CommentUpdate,
 			rbac.CommentDelete,
 		},
@@ -92,4 +77,32 @@ var DefaultRoles = []rbac.Role{
 		IsActive:    true,
 		Permissions: []rbac.Permission{},
 	},
+}
+
+func CreateDefaultRolesIfNotExist(ctx context.Context, logger *zap.Logger, roleRepo repository.RoleRepository) {
+	for _, role := range DefaultRoles {
+		existRole, err := roleRepo.GetByName(ctx, role.Name)
+		if err != nil {
+			var notFoundError *domainerrors.DomainError
+			if errors.As(err, &notFoundError) && notFoundError.Type == domainerrors.ErrorTypeNotFound {
+			} else {
+				panic(err)
+			}
+		}
+		if existRole != nil {
+			logger.Info("role already exist", zap.String("name", role.Name), zap.Any("role", existRole))
+			continue
+		}
+		newRole := &rbac.Role{
+			Name:        role.Name,
+			IsSystem:    role.IsSystem,
+			IsActive:    role.IsActive,
+			Permissions: role.Permissions,
+		}
+		createdRole, err := roleRepo.Create(ctx, newRole)
+		if err != nil {
+			panic(err)
+		}
+		logger.Info("role created", zap.String("name", role.Name), zap.Uint("ID", createdRole.ID))
+	}
 }

@@ -63,6 +63,7 @@ func main() {
 	scripts.CreateAdminIfNotExists(ctx, cfg.Admin, logger, container.UserRepository, container.Hasher)
 	scripts.CreateAdminRoleIfNotExists(ctx, logger, container.RoleRepository)
 	scripts.AssignAdminRoleToAdmin(ctx, cfg.Admin, logger, container.RoleRepository, db)
+	scripts.CreateDefaultRolesIfNotExist(ctx, logger, container.RoleRepository)
 
 	router := gin.Default()
 

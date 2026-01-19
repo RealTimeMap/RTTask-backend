@@ -85,6 +85,19 @@ definitions:
       token:
         type: string
     type: object
+  dto.InviteUpdateRequest:
+    properties:
+      deleteRolesIds:
+        items:
+          type: integer
+        type: array
+      description:
+        type: string
+      rolesIds:
+        items:
+          type: integer
+        type: array
+    type: object
   dto.PermissionGroupDTO:
     properties:
       group:
@@ -109,7 +122,7 @@ definitions:
         type: string
       permissions:
         items:
-          type: string
+          $ref: '#/definitions/rbac.PermissionInfo'
         type: array
     type: object
   dto.TaskPaginationResponse:
@@ -186,6 +199,13 @@ definitions:
         type: string
       id:
         type: integer
+    type: object
+  rbac.PermissionInfo:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
     type: object
   response.ProblemDetail:
     properties:
@@ -392,6 +412,58 @@ paths:
       summary: Create new company
       tags:
       - companies
+  /company/{id}:
+    patch:
+      consumes:
+      - multipart/form-data
+      description: Update company details (name, description, logo). All fields are
+        optional.
+      parameters:
+      - description: Company ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Company name
+        in: formData
+        name: name
+        type: string
+      - description: Company description
+        in: formData
+        name: description
+        type: string
+      - description: Company logo image
+        in: formData
+        name: logo
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully updated company
+          schema:
+            $ref: '#/definitions/dto.CompanyResponse'
+        "400":
+          description: Invalid request body or company ID
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "404":
+          description: Company not found
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Update company
+      tags:
+      - companies
   /invite:
     get:
       consumes:
@@ -455,6 +527,52 @@ paths:
       security:
       - BearerAuth: []
       summary: Create invite link
+      tags:
+      - invite
+  /invite/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing invite link. Allows modifying description and
+        associated roles.
+      parameters:
+      - description: Invite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Invite update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.InviteUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully updated invite link
+          schema:
+            $ref: '#/definitions/dto.InviteResponse'
+        "400":
+          description: Invalid request body or invite ID
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "401":
+          description: Unauthorized - invalid or missing token
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "404":
+          description: Invite not found
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ProblemDetail'
+      security:
+      - BearerAuth: []
+      summary: Update invite link
       tags:
       - invite
   /role:

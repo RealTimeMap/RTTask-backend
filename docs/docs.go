@@ -286,6 +286,85 @@ const docTemplate = `{
                 }
             }
         },
+        "/company/{id}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update company details (name, description, logo). All fields are optional.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "companies"
+                ],
+                "summary": "Update company",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Company ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Company name",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Company description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Company logo image",
+                        "name": "logo",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully updated company",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CompanyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or company ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "404": {
+                        "description": "Company not found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    }
+                }
+            }
+        },
         "/invite": {
             "get": {
                 "security": [
@@ -373,6 +452,76 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized - invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    }
+                }
+            }
+        },
+        "/invite/{id}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing invite link. Allows modifying description and associated roles.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "invite"
+                ],
+                "summary": "Update invite link",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Invite ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Invite update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.InviteUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully updated invite link",
+                        "schema": {
+                            "$ref": "#/definitions/dto.InviteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or invite ID",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/response.ProblemDetail"
+                        }
+                    },
+                    "404": {
+                        "description": "Invite not found",
                         "schema": {
                             "$ref": "#/definitions/response.ProblemDetail"
                         }
@@ -1092,6 +1241,26 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.InviteUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "deleteRolesIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "rolesIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "dto.PermissionGroupDTO": {
             "type": "object",
             "properties": {
@@ -1129,7 +1298,7 @@ const docTemplate = `{
                 "permissions": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/rbac.PermissionInfo"
                     }
                 }
             }
@@ -1246,6 +1415,17 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                }
+            }
+        },
+        "rbac.PermissionInfo": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

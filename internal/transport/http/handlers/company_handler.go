@@ -126,6 +126,23 @@ func (h *CompanyHandler) GetCompanies(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.NewPaginationResponse(companiesResponse, params, count))
 }
 
+// UpdateCompany godoc
+// @Summary Update company
+// @Description Update company details (name, description, logo). All fields are optional.
+// @Tags companies
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Company ID"
+// @Param name formData string false "Company name"
+// @Param description formData string false "Company description"
+// @Param logo formData file false "Company logo image"
+// @Success 200 {object} dto.CompanyResponse "Successfully updated company"
+// @Failure 400 {object} response.ProblemDetail "Invalid request body or company ID"
+// @Failure 401 {object} response.ProblemDetail "Unauthorized - invalid or missing token"
+// @Failure 404 {object} response.ProblemDetail "Company not found"
+// @Failure 500 {object} response.ProblemDetail "Internal server error"
+// @Router /company/{id} [patch]
 func (h *CompanyHandler) UpdateCompany(c *gin.Context) {
 	userID := response.GetUserID(c)
 	traceID := response.GetTraceID(c)
